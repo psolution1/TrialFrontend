@@ -8,7 +8,14 @@ function History() {
   const [data, setdata] = useState([]);
   const getSmsReport = async () => {
     try {
-      const responce = await axios.get(`${apiUrl}/getAllSmsReport`);
+      const responce = await axios.get(`${apiUrl}/getAllSmsReport`,{
+        
+          headers: {
+
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        
+      });
       setdata(responce.data.smsreport);
     } catch (error) {
       console.log(error);

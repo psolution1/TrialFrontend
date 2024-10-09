@@ -32,14 +32,13 @@ function Header() {
     }, 500);
   };
 
-  
-  
   const getAllLead1 = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get_All_Lead_Followup`, {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
 
@@ -49,19 +48,20 @@ function Header() {
       const currentTime = new Date();
       const leadsToCount = filteredLeads?.filter((lead) => {
         const followupDate = new Date(lead?.followup_date);
-        const fiveMinutesBeforeFollowup = new Date(followupDate.getTime() - 5 * 60 * 1000);
+        const fiveMinutesBeforeFollowup = new Date(
+          followupDate.getTime() - 5 * 60 * 1000
+        );
         return currentTime >= fiveMinutesBeforeFollowup;
       });
 
       const followupLeadCount = leadsToCount?.length || 0;
 
       // Update lead count state for notification
-      setLeadCountDataa([{ name: 'Followup Leads', Value: followupLeadCount }]);
+      setLeadCountDataa([{ name: "Followup Leads", Value: followupLeadCount }]);
       setFilterLeads(filteredLeads);
       setFollowupLeadCount(followupLeadCount);
 
-      console.log('Number of leads to count:', followupLeadCount);
-
+      console.log("Number of leads to count:", followupLeadCount);
     } catch (error) {
       console.error(error);
     }
@@ -86,6 +86,7 @@ function Header() {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
       setleadcountdata(responce?.data?.Count);
@@ -128,30 +129,26 @@ function Header() {
         </div>
 
         <ul className="navbar-nav ml-auto">
-          
           <li className="nav-item dropdown">
-              <Link className="nav-link" data-toggle="dropdown" to="#">
-                <i className="far fa-bell pe-7s-bell" />
-               
-                {followupLeadCount > 0 && (
-                  <span className="badge badge-warning navbar-badge">
-                    {followupLeadCount}
-                  </span>
-                )}
-              </Link>
-              <div className="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                
-                {followupLeadCount > 0 && (
-                  <Link to="/followupleads" className="dropdown-item">
-                    <i className="fas fa-envelope mr-2" /> {followupLeadCount} Miss follow-ups
-                  </Link>
-                )}
-    
-  
+            <Link className="nav-link" data-toggle="dropdown" to="#">
+              <i className="far fa-bell pe-7s-bell" />
+
+              {followupLeadCount > 0 && (
+                <span className="badge badge-warning navbar-badge">
+                  {followupLeadCount}
+                </span>
+              )}
+            </Link>
+            <div className="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+              {followupLeadCount > 0 && (
+                <Link to="/followupleads" className="dropdown-item">
+                  <i className="fas fa-envelope mr-2" /> {followupLeadCount}{" "}
+                  Miss follow-ups
+                </Link>
+              )}
             </div>
           </li>
 
-         
           {/* <li className="nav-item dropdown">
             <Link className="nav-link" data-toggle="dropdown" to="#">
               <i className="far fa-bell pe-7s-bell" />
@@ -205,24 +202,25 @@ function Header() {
               </Link>
               {localStorage.getItem("role") === "admin" && (
                 <>
-                  {agent.agent?.map(
-                    (agents, key) =>
-                      agents.role !== "admin" && (
-                        <React.Fragment key={agents?._id}>
-                          <div className="dropdown-divider" />
-                          <a
-                            href={`${baseUrl}/newloginpage/${agents?._id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="dropdown-item"
-                            key={key}
-                          >
-                            <i className="nav-icon far fa fa-cog" />{" "}
-                            {agents?.agent_name}
-                          </a>
-                        </React.Fragment>
-                      )
-                  )}
+                  {agent &&
+                    agent.agent?.map(
+                      (agents, key) =>
+                        agents.role !== "admin" && (
+                          <React.Fragment key={agents?._id}>
+                            <div className="dropdown-divider" />
+                            <a
+                              href={`${baseUrl}/newloginpage/${agents?._id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="dropdown-item"
+                              key={key}
+                            >
+                              <i className="nav-icon far fa fa-cog" />{" "}
+                              {agents?.agent_name}
+                            </a>
+                          </React.Fragment>
+                        )
+                    )}
                 </>
               )}
             </div>{" "}

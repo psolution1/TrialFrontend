@@ -16,6 +16,8 @@ function UploadDataDetails() {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
         },
       }
       );

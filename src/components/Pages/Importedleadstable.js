@@ -9,7 +9,10 @@ import { getAllAgent, getAllAgentWithData } from "../../features/agentSlice";
 import { getAllStatus } from "../../features/statusSlice";
 import { toast } from "react-toastify";
 // import ReactHTMLTableToExcel from 'react-html-table-to-excel'; // Import the library
-
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+// import ReactHTMLTableToExcel from 'react-html-table-to-excel'; // Import the library
+import { addfollowup, getAllFollowup } from "../../features/followupSlice";
 export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
   const dispatch = useDispatch();
   const [leads, setleads] = useState([]);
@@ -24,10 +27,192 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
   const { Statusdata } = useSelector((state) => state.StatusData);
   const apiUrl = process.env.REACT_APP_API_URL;
   const DBuUrl = process.env.REACT_APP_DB_URL;
-
+  const [selectedRow, setSelectedRow] = useState(null); 
+  const [isModalOpen, setIsModalOpen] = useState(false); 
+  const [dataa, setData] = useState({
+    followup_date: new Date(), // Initialize with the current date
+  });
   const handlePageChange = (page) => {
     setCurrentPage(page); // Update current page state when page changes
   };
+  const handleQuickEdit = (row) => {
+    setSelectedRow(row); // Set the row data
+    setIsModalOpen(true); // Open the modal
+  };
+  
+  // Function to handle modal close
+  const handleCloseModal = () => {
+    setIsModalOpen(false); // Close the modal
+  };
+
+  const handleDatePickerChange = (date) => {
+    setSelectedRow({ ...selectedRow, followup_date: date });
+  };
+  const getdatetimeformate = (datetime) => {
+    if (datetime) {
+      const dateObject = new Date(datetime);
+      const formattedDate = `${padZero(dateObject.getDate())}-${padZero(
+        dateObject.getMonth() + 1
+      )}-${dateObject.getFullYear()} ${padZero(
+        dateObject.getHours()
+      )}:${padZero(dateObject.getMinutes())}`;
+      return formattedDate;
+    } else {
+      return " ";
+    }
+  };
+  function padZero(num) {
+    return num < 10 ? `0${num}` : num;
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+  
+    // Function to convert local time to UTC by removing the time zone offset
+    // const followupDate = dataa.followup_date;
+    const followupDate = selectedRow?.followup_date;
+    // Check if followupDate is defined and not null
+    if (!followupDate) {
+      toast.warn("Followup date is required");
+      return;
+    }
+  
+    // Convert followupDate to ISO string without timezone adjustment
+    const adjustedFollowupDate = new Date(followupDate).toISOString().slice(0, 16);
+  
+  
+    // Collect form data
+    const updatedLeadData = {
+      lead_id: selectedRow._id,
+      commented_by: selectedRow?.agent_details[0]?._id || '',
+      followup_status_id: selectedRow.status_details[0]?._id || '',
+      
+      // Convert followup_date to UTC before submitting
+      followup_date: adjustedFollowupDate ,
+      
+      followup_won_amount: selectedRow.followup_won_amount || 0,
+      followup_lost_reason_id: selectedRow.followup_lost_reason_id || '',
+      add_to_calender: selectedRow.add_to_calender || false,
+      followup_desc: selectedRow.description || '',
+    };
+  
+    console.log("Submitting data:", updatedLeadData);
+  
+    try {
+      const response = await dispatch(addfollowup(updatedLeadData));
+      if (response.payload.success) {
+        toast.success(response.payload?.message);
+        // Simulate page refresh effect
+        // handleCloseModal(); 
+        window.location.reload();
+        
+      } else {
+        toast.warn(response.payload?.message);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error submitting followup:", error);
+      toast.error("An error occurred while submitting followup");
+    }
+  };
+  const parseDate = (dateString) => {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  };
+  
+  const formatDateToLocal = (dateString) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return ''; // Return an empty string if the date is invalid
+    }
+  
+    // Format the date to "YYYY-MM-DDTHH:MM" format for datetime-local input
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - (offset * 60000));
+    return localDate.toISOString().slice(0, 16); // Remove the seconds and milliseconds
+  };
+
+
+
+
+  const quickEditModal = (
+    <div
+      className={`modal fade ${isModalOpen ? 'show' : ''}`}
+      style={{ display: isModalOpen ? 'block' : 'none' }}
+      aria-labelledby="quickEditModalLabel"
+      aria-hidden={!isModalOpen}
+    >
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title" id="quickEditModalLabel">Quick Edit</h5>
+            <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+          </div>
+          <div className="modal-body">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label htmlFor="lastComment" className="form-label">Last Comment</label>
+                <textarea
+                  id="lastComment"
+                  className="form-control"
+                  value={selectedRow?.description || ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, description: e.target.value })}
+                />
+              </div>
+             
+              <div className="mb-3">
+                <label htmlFor="followupDateTime" className="form-label">Follow-up Date and Time</label>
+                {/* <input
+                  type="datetime-local"
+                  id="followupDateTime"
+                  className="form-control"
+                  value={selectedRow?.followup_date ? formatDateToLocal(selectedRow.followup_date) : ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, followup_date: e.target.value })}
+                /> */}
+                 <DatePicker
+                      // selected={dataa.followup_date}
+                      // onChange={(date) => setData({ ...selectedRow, followup_date: date })}
+                      selected={selectedRow?.followup_date ? new Date(selectedRow.followup_date) : null}
+                      onChange={(date) => setSelectedRow({ ...selectedRow, followup_date: date })}
+                      showTimeSelect
+                      timeFormat="hh:mm aa"
+                      timeIntervals={5}
+                      timeCaption="Time"
+                      dateFormat="dd/MM/yyyy h:mm aa" // Custom format: day/month/year and 12-hour time
+                      className="form-control"
+                      placeholderText="Followup date"
+                      name="followup_date"
+                      id="followup_date"
+                    />
+              </div>
+  
+              <div className="mb-3">
+                <label htmlFor="status" className="form-label">Change Status</label>
+                <select
+                  id="status"
+                  className="form-control"
+                  value={selectedRow?.status_details[0]?._id || ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, status_details: [{ _id: e.target.value }] })}
+                >
+                  <option value="">Select Status</option>
+                  {Statusdata.leadstatus?.map((status) => (
+                    <option key={status._id} value={status._id}>
+                      {status.status_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+  
+              <div className="modal-footer">
+                <button type="submit" className="btn btn-primary">Submit</button>
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +231,7 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
       const filteredLeads = responce?.data?.lead?.filter(
@@ -96,6 +282,13 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
         `${apiUrl}/getLeadbyTeamLeaderidandwithstatus`,
         {
           assign_to_agent,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
         }
       );
       const filteredLeads = responce?.data?.lead?.filter(
@@ -113,6 +306,42 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
     }
   };
 
+  const getAllLead4 = async (assign_to_agent) => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/getLeadbyGroupLeaderidandwithstatus`,
+        {
+          assign_to_agent,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        }
+      );
+      const filteredLeads = responce?.data?.lead?.filter(
+        (lead) => lead?.type === "excel"
+      );
+      setstatus(responce?.data?.success);
+      if (responce?.data?.success === true) {
+        // setleads(responce?.data?.lead);
+        // setfilterleads(responce?.data?.lead);
+        setleads(filteredLeads);
+        setfilterleads(filteredLeads);
+        return responce?.data?.message;
+      }
+    } catch (error) {
+      const message = await error?.response?.data?.message;
+      if (message == "Client must be connected before running operations") {
+        getAllLead3();
+      }
+      console.log(error);
+      setfilterleads();
+    }
+  };
+
   useEffect(() => {
     if (localStorage.getItem("role") === "admin") {
       getAllLead1();
@@ -124,7 +353,15 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
           assign_to_agent: localStorage.getItem("user_id"),
         })
       );
-    } else {
+    } else if (localStorage.getItem("role") === "GroupLeader") {
+      getAllLead4(localStorage.getItem("user_id"));
+      dispatch(
+        getAllAgentWithData({
+          assign_to_agent: localStorage.getItem("user_id"),
+        })
+      );
+    } 
+    else {
       getAllLead2(localStorage.getItem("user_id"));
       dispatch(
         getAllAgent({ assign_to_agent: localStorage.getItem("user_id") })
@@ -315,6 +552,26 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
       cell: (row) => <div style={{ display: "none" }}>{row.description}</div>,
     },
     {
+      name: "Quick Edit",
+      cell: (row) => <button onClick={() => handleQuickEdit(row)}>Quick Edit</button>,
+    },
+
+     
+    {
+      // name: "Followup date",
+      name: <div style={{ display: "none" }}>Followup date</div>,
+      selector: (row) =>
+        row?.followup_date
+          ? (<div style={{display:"none"}} >{getdatetimeformate(row?.followup_date)}</div>) 
+          
+          //  row?.followup_date && format(new Date(datafomate(row?.followup_date)), 'dd/MM/yy hh:mm:ss')
+            
+          : (
+            ""
+          ),
+      sortable: true,
+    },
+    {
       name: "Action",
       cell: (row) => (
         <a href={`/followupleads/${row?._id}`}>
@@ -358,6 +615,26 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
       selector: (row) => row?.description,
       sortable: true,
       cell: (row) => <div style={{ display: "none" }}>{row.description}</div>,
+    },
+    {
+      name: "Quick Edit",
+      cell: (row) => <button onClick={() => handleQuickEdit(row)}>Quick Edit</button>,
+    },
+
+     
+    {
+      // name: "Followup date",
+      name: <div style={{ display: "none" }}>Followup date</div>,
+      selector: (row) =>
+        row?.followup_date
+          ? (<div style={{display:"none"}} >{getdatetimeformate(row?.followup_date)}</div>) 
+          
+          //  row?.followup_date && format(new Date(datafomate(row?.followup_date)), 'dd/MM/yy hh:mm:ss')
+            
+          : (
+            ""
+          ),
+      sortable: true,
     },
     {
       name: "Action",
@@ -464,6 +741,7 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
         body: JSON.stringify(aaaaa),
       })
@@ -505,6 +783,7 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
       headers: {
         "Content-Type": "application/json",
         "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
       },
       body: JSON.stringify(updatedata),
     })
@@ -588,7 +867,9 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
                       <option>Status</option>
                       {Statusdata?.leadstatus?.map((status, key) => {
                         return (
-                          <option value={status._id}>{status.status_name}</option>
+                          <option value={status._id}>
+                            {status.status_name}
+                          </option>
                         );
                       })}
                     </select>
@@ -607,7 +888,9 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
                       <option value="Unassigne">Unassigned Agent</option>
                       {agent?.agent?.map((agents, key) => {
                         return (
-                          <option value={agents._id}>{agents.agent_name}</option>
+                          <option value={agents._id}>
+                            {agents.agent_name}
+                          </option>
                         );
                       })}
                     </select>
@@ -620,7 +903,10 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
                       placeholder="Date To"
                       className="form-control"
                       onChange={(e) =>
-                        setAdvanceSerch({ ...adSerch, startDate: e.target.value })
+                        setAdvanceSerch({
+                          ...adSerch,
+                          startDate: e.target.value,
+                        })
                       }
                       name="startDate"
                     />
@@ -642,20 +928,14 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
 
                 <div className="col-md-3">
                   <div className="form-group">
-                    <button
-                      type="submit"
-                      className="btn-advf-sub"
-                    >
+                    <button type="submit" className="btn-advf-sub">
                       Submit
                     </button>
                   </div>
                 </div>
                 <div className="col-md-3">
                   <div className="form-group">
-                    <button
-                      onClick={Refresh}
-                      className="btn-advf-refresh"
-                    >
+                    <button onClick={Refresh} className="btn-advf-refresh">
                       Refresh
                     </button>
                   </div>
@@ -667,25 +947,16 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
       </div>
       <div className="row">
         <div className="col-md-12 advS">
-        <div className="export-wrap">
+          <div className="export-wrap">
             {isAdmin1 ? (
               <>
-                <button
-                  className="btn-ecport-pdf"
-                  onClick={exportToPDF}
-                >
+                <button className="btn-ecport-pdf" onClick={exportToPDF}>
                   Export PDF
                 </button>
-                <button
-                  className="btn-ecport-xls"
-                  onClick={exportToExcel}
-                >
+                <button className="btn-ecport-xls" onClick={exportToExcel}>
                   Export Excel
                 </button>
-                <button
-                  className="btn-ecport-del"
-                  onClick={DeleteSelected}
-                >
+                <button className="btn-ecport-del" onClick={DeleteSelected}>
                   Delete
                 </button>{" "}
               </>
@@ -695,6 +966,7 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
           </div>
         </div>
       </div>
+      {quickEditModal}
       {status === false ? (
         <table
           id="example"
@@ -721,16 +993,10 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
         <>
           {isAdmin1 ? (
             <>
-              <button
-                className="btn-sel-all"
-                onClick={handleCheckAll1}
-              >
+              <button className="btn-sel-all" onClick={handleCheckAll1}>
                 Select All
               </button>
-              <button
-                className="btn-sel-one"
-                onClick={handleCheckAll}
-              >
+              <button className="btn-sel-one" onClick={handleCheckAll}>
                 Select Per Page
               </button>
               <span class="btn btn-sm shadow_btn">Rows per page:</span>
@@ -749,16 +1015,10 @@ export const Importedleadstable = ({ sendDataToParent, dataFromParent }) => {
           ) : (
             <>
               {" "}
-              <button
-                className="btn-sel-all"
-                onClick={handleCheckAll1}
-              >
+              <button className="btn-sel-all" onClick={handleCheckAll1}>
                 Select All
               </button>
-              <button
-                className="btn-sel-one"
-                onClick={handleCheckAll}
-              >
+              <button className="btn-sel-one" onClick={handleCheckAll}>
                 Select Per Page
               </button>
               <span class="btn btn-sm shadow_btn">Rows per page:</span>

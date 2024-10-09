@@ -8,9 +8,13 @@ import {
 } from "../../features/product_serviceSlice";
 // import getAllProductService from "../../features/product_serviceSlice"
 import { toast } from "react-toastify";
+import Chart from "react-apexcharts";
+import { Bar } from "react-chartjs-2";
+import axios from "axios";
+const apiUrl = process.env.REACT_APP_API_URL;
+const DBuUrl = process.env.REACT_APP_DB_URL;
 
 function Productservices() {
-   
   const { ProductService } = useSelector((state) => state.ProductService);
 
   const dispatch = useDispatch();
@@ -37,7 +41,6 @@ function Productservices() {
       } else {
         toast.warn(aaaa.payload.message);
       }
-      
     } else {
       const aaaa = await dispatch(addProductService(data));
       if (aaaa.payload.success === true) {
@@ -60,18 +63,64 @@ function Productservices() {
 
   /// add form show
   const [line, setline] = useState("none");
-  const showForm = async(e) => {
+  const showForm = async (e) => {
     if (line === "none") {
       setData(null); // Set data to null
-      setData({product_service_name:'',set_up_fee:'',payment:''}); // Set data to null
+      setData({ product_service_name: "", set_up_fee: "", payment: "" }); // Set data to null
 
-       setline("block");
+      setline("block");
     } else {
       setData(null); // Set data to null
-      setData({product_service_name:'',set_up_fee:'',payment:''}); // Set data to null
+      setData({ product_service_name: "", set_up_fee: "", payment: "" }); // Set data to null
       setline("none");
     }
   };
+
+  const [stats, setStats] = useState(null);
+
+  const getStats = async () => {
+    try {
+      const responce = await axios.get(`${apiUrl}/get_service_best_and_worst`, {
+        headers: {
+          "Content-Type": "application/json",
+          "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
+      if (responce.status === 200) {
+        console.log(responce.data.stats);
+        const stats = responce.data.stats;
+
+        const best = stats["best"].length > 0 ? stats["best"][0] : null;
+        const worst = stats["worst"][0] ? stats["worst"][0] : null;
+
+        const labels = [
+          best?.product_service_name,
+          worst?.product_service_name,
+        ];
+        const data = [best?.count, worst?.count];
+        const cdata = {
+          labels: labels,
+          datasets: [
+            {
+              label: "Best and Worst Performance Service",
+              // backgroundColor: "rgb(255, 99, 132)",
+              backgroundColor: ["green", "red"],
+              borderColor: "rgb(255, 99, 132)",
+              data: data,
+            },
+          ],
+        };
+
+        setStats(cdata);
+      }
+    } catch (err) {}
+  };
+
+  React.useEffect(() => {
+    getStats();
+  }, []);
+
   /// add form show
 
   return (
@@ -306,6 +355,10 @@ function Productservices() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="content py-2 pt-3">
+          <div className="container">{stats && <Bar data={stats} />}</div>
         </section>
       </div>
     </div>

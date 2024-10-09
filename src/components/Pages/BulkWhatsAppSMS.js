@@ -11,6 +11,8 @@ export default function BulkWhatsAppSMS() {
                 headers: {
                     "Content-Type": "application/json",
                     "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
                 },
             });
              setsmsdata(response?.data?.whatappSMSModel['0']);
@@ -32,6 +34,8 @@ export default function BulkWhatsAppSMS() {
             headers: {
                 "Content-Type": "application/json",
                 "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
             },
          });
          setsmsdata(response?.data?.whatapp['0']);

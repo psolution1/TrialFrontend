@@ -12,7 +12,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 // import ReactHTMLTableToExcel from 'react-html-table-to-excel'; // Import the library
 import { addfollowup, getAllFollowup } from "../../features/followupSlice";
-export const Allleadstable = ({
+export const HotLeadtable = ({
   sendDataToParent,
   isHotLead = false,
   dataFromParent,
@@ -238,16 +238,26 @@ export const Allleadstable = ({
   };
   const getAllLead1 = async () => {
     try {
-      const responce = await axios.get(`${apiUrl}/get_all_lead`, {
+      const responce = await axios.get(`${apiUrl}/get_All_Lead_Followup`, {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
+      const leads = responce?.data?.lead;
+      // console.log(leads)
+
+      const filteredLeads = responce?.data?.lead?.filter(
+        // (lead) => lead?.type !== "excel"
+        (lead) => lead?.type !== "excel" && 
+                  (
+                   lead?.status_details[0]?.status_name === "Meeting")
+      );
+
       setstatus(responce?.data?.success);
-      setleads(responce?.data?.lead);
-      setfilterleads(responce?.data?.lead);
-      return responce?.data?.message;
+      setleads(filteredLeads);
+      setfilterleads(filteredLeads);
     } catch (error) {
       console.log(error);
       setfilterleads();
@@ -256,38 +266,41 @@ export const Allleadstable = ({
 
   const getAllLead2 = async (assign_to_agent) => {
     try {
-      const responce = await axios.post(
-        `${apiUrl}/get_Leadby_agentid_with_status`,
-        {
-          assign_to_agent,
-        }
+      const responce = await axios.post(`${apiUrl}/get_Leadby_agentid_status`, {
+        assign_to_agent,
+        headers: {
+          "Content-Type": "application/json",
+          "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
+      const filteredLeads = responce?.data?.lead?.filter(
+        // (lead) => lead?.type !== "excel"
+        (lead) => lead?.type !== "excel" && 
+                  (
+                   lead?.status_details[0]?.status_name === "Meeting")
       );
-      
-      setstatus(responce?.data?.success);
       if (responce?.data?.success === true) {
         setstatus(responce?.data?.success);
-        setleads(responce?.data?.lead);
-        setfilterleads(responce?.data?.lead);
+        setleads(filteredLeads);
+        setfilterleads(filteredLeads);
       }
       if (responce?.data?.success === false) {
         setstatus(responce?.data?.success);
-        setleads(responce?.data?.lead);
-        setfilterleads(responce?.data?.lead);
+        setleads(filteredLeads);
+        setfilterleads(filteredLeads);
       }
     } catch (error) {
-      const message = await error?.response?.data?.message;
-      if (message == "Client must be connected before running operations") {
-        getAllLead2();
-      }
       console.log(error);
       setfilterleads();
     }
   };
+
   /////// For Team Leader
   const getAllLead3 = async (assign_to_agent) => {
     try {
       const responce = await axios.post(
-        `${apiUrl}/getLeadbyTeamLeaderidandwithstatus`,
+        `${apiUrl}/getLeadbyTeamLeaderidandwithoutstatus`,
         {
           assign_to_agent,
         },
@@ -299,25 +312,28 @@ export const Allleadstable = ({
           },
         }
       );
-      setstatus(responce?.data?.success);
+      const filteredLeads = responce?.data?.lead?.filter(
+        // (lead) => lead?.type !== "excel"
+        (lead) => lead?.type !== "excel" && 
+                  (
+                   lead?.status_details[0]?.status_name === "Meeting")
+      );
       if (responce?.data?.success === true) {
-        setleads(responce?.data?.lead);
-        setfilterleads(responce?.data?.lead);
+        setleads(filteredLeads);
+        setfilterleads(filteredLeads);
         return responce?.data?.message;
       }
     } catch (error) {
-      const message = await error?.response?.data?.message;
-      if (message == "Client must be connected before running operations") {
-        getAllLead3();
-      }
       console.log(error);
       setfilterleads();
     }
   };
+
+  /// group leader 
   const getAllLead4 = async (assign_to_agent) => {
     try {
       const responce = await axios.post(
-        `${apiUrl}/getLeadbyGroupLeaderidandwithstatus`,
+        `${apiUrl}/getLeadbyGroupLeaderidandwithoutstatus`,
         {
           assign_to_agent,
         },
@@ -329,17 +345,21 @@ export const Allleadstable = ({
           },
         }
       );
-      setstatus(responce?.data?.success);
+
+      const filteredLeads = responce?.data?.lead?.filter(
+        // (lead) => lead?.type !== "excel"
+        (lead) => lead?.type !== "excel" && 
+                  (
+                   lead?.status_details[0]?.status_name === "Meeting")
+      );
+   
+
       if (responce?.data?.success === true) {
-        setleads(responce?.data?.lead);
-        setfilterleads(responce?.data?.lead);
+        setleads(filteredLeads);
+        setfilterleads(filteredLeads);
         return responce?.data?.message;
       }
     } catch (error) {
-      const message = await error?.response?.data?.message;
-      if (message == "Client must be connected before running operations") {
-        getAllLead3();
-      }
       console.log(error);
       setfilterleads();
     }
@@ -356,8 +376,7 @@ export const Allleadstable = ({
           assign_to_agent: localStorage.getItem("user_id"),
         })
       );
-    } 
-    else if (localStorage.getItem("role") === "GroupLeader") {
+    } else if (localStorage.getItem("role") === "GroupLeader") {
       getAllLead4(localStorage.getItem("user_id"));
       dispatch(
         getAllAgentWithData({
@@ -365,19 +384,16 @@ export const Allleadstable = ({
         })
       );
     } 
-    
     else {
       getAllLead2(localStorage.getItem("user_id"));
       dispatch(
         getAllAgent({ assign_to_agent: localStorage.getItem("user_id") })
       );
     }
-  }, [
-    localStorage.getItem("user_id"),
-    apiUrl,
-    DBuUrl,
-    localStorage.getItem("role"),
-  ]);
+
+    dispatch(getAllStatus());
+  }, [localStorage.getItem("user_id")]);
+
 
   useEffect(() => {
     const result = leads.filter((lead) => {

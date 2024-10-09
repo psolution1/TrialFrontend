@@ -36,6 +36,9 @@ export default function ImportLead() {
     if(localStorage.getItem("role")==='TeamLeader'){
       dispatch(getAllAgentWithData({assign_to_agent:localStorage.getItem("user_id")}));
     }
+    if(localStorage.getItem("role")==='GroupLeader'){
+      dispatch(getAllAgentWithData({assign_to_agent:localStorage.getItem("user_id")}));
+    }
   }, []);
 
 

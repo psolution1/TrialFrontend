@@ -6,15 +6,17 @@ import {
 
 const apiUrl = process.env.REACT_APP_API_URL;
 const DBuUrl = process.env.REACT_APP_DB_URL;
+
 /////////add strtus
 export const addProductService = createAsyncThunk(
   "addProductService",
   async (data, { rejectWithValue }) => {
     const responce = await fetch(`${apiUrl}/add_product_service/`, {
       method: "POST",
-      headers:{
+      headers: {
         "Content-Type": "application/json",
-          "mongodb-url":DBuUrl,
+        "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
       },
       body: JSON.stringify(data),
     });
@@ -35,15 +37,16 @@ export const UpdateProductService = createAsyncThunk(
       `${apiUrl}/update_product_service/${data?._id}`,
       {
         method: "put",
-          headers:{
-            "Content-Type": "application/json",
-              "mongodb-url":DBuUrl,
-          },
-      body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+          "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+        body: JSON.stringify(data),
       }
     );
     const result = await responce.json();
- 
+
     if (result.success === true) {
       return result;
     } else {
@@ -56,32 +59,34 @@ export const UpdateProductService = createAsyncThunk(
 export const getAllProductService = createAsyncThunk(
   "getAllProductService",
   async (dara, { rejectWithValue }) => {
-    const resource = await fetch(
-      `${apiUrl}/all_product_service/`,{
-        headers:{     
-          "Content-Type":"application/json",
-           "mongodb-url":DBuUrl,
-         }, 
-      }
-    );
+    const resource = await fetch(`${apiUrl}/all_product_service/`, {
+      headers: {
+        "Content-Type": "application/json",
+        "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+    });
     const result = await resource.json();
     if (result.success === true) {
       return result;
     } else {
-      if(result.message=='Client must be connected before running operations'){
-        const responce=await fetch(`${apiUrl}/all_product_service`,{
-            headers:{       
-                "Content-Type":"application/json",
-                "mongodb-url":DBuUrl,
-               }, 
-          });
-        const result=await responce.json();
-        if(result.success===true){    
-            return result;   
-       }
-    }else{
-        return rejectWithValue(result.message); 
-    } 
+      if (
+        result.message == "Client must be connected before running operations"
+      ) {
+        const responce = await fetch(`${apiUrl}/all_product_service`, {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        });
+        const result = await responce.json();
+        if (result.success === true) {
+          return result;
+        }
+      } else {
+        return rejectWithValue(result.message);
+      }
       // return rejectWithValue(result.message);
     }
   }
@@ -92,16 +97,14 @@ export const getAllProductService = createAsyncThunk(
 export const deleteProductService = createAsyncThunk(
   "deleteProductService",
   async (_id, { rejectWithValue }) => {
-    const responce = await fetch(
-      `${apiUrl}/delete_product_service/${_id}`,
-      {
-        method: "DELETE",
-        headers:{
-          "Content-Type": "application/json",
-            "mongodb-url":DBuUrl,
-        }
-      }
-    );
+    const responce = await fetch(`${apiUrl}/delete_product_service/${_id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+    });
 
     const result = await responce.json();
 
@@ -135,22 +138,24 @@ export const productservice = createSlice({
       state.loading = false;
       state.ProductService = action.payload;
     },
-    //////update Api 
+    //////update Api
     [UpdateProductService.pending]: (state) => {
       state.loading = true;
     },
     [UpdateProductService.fulfilled]: (state, action) => {
       state.loading = false;
-      console.log('action.payload',action.payload); 
-      state.ProductService.product_service=state.ProductService.product_service.map((ele)=>
-      ele._id===action.payload.product_service._id?action.payload.product_service:ele
-   );
+      console.log("action.payload", action.payload);
+      state.ProductService.product_service =
+        state.ProductService.product_service.map((ele) =>
+          ele._id === action.payload.product_service._id
+            ? action.payload.product_service
+            : ele
+        );
     },
     [UpdateProductService.rejected]: (state, action) => {
       state.loading = false;
       state.ProductService = action.payload;
     },
-
 
     /// get all product and service
     [getAllProductService.pending]: (state) => {

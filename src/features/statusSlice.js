@@ -51,23 +51,25 @@ const DBuUrl = process.env.REACT_APP_DB_URL;
    ////////get app status 
    export const getAllStatus=createAsyncThunk("getAllStatus",async(dara,{rejectWithValue})=>{
         
-       const resource=await fetch(`${apiUrl}/all_lead_status/`,{
-        headers: {
-            "Content-Type": "application/json",
-            "mongodb-url":DBuUrl,
-          },
-       })
+       const resource = await fetch(`${apiUrl}/all_lead_status/`, {
+         headers: {
+           "Content-Type": "application/json",
+           "mongodb-url": DBuUrl,
+           Authorization: `Bearer ${localStorage.getItem("token")}`,
+         },
+       });
        const result=await resource.json();
     if(result.success===true){    
         return result;    
    }else{ 
     if(result.message=='Client must be connected before running operations'){
-    const responce=await fetch(`${apiUrl}/all_lead_status`,{
-        headers:{       
-            "Content-Type":"application/json",
-            "mongodb-url":DBuUrl,
-           }, 
-      });
+    const responce = await fetch(`${apiUrl}/all_lead_status`, {
+      headers: {
+        "Content-Type": "application/json",
+        "mongodb-url": DBuUrl,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
     const result=await responce.json();
     if(result.success===true){    
         return result;   

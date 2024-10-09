@@ -15,6 +15,8 @@ export default function Housingapi() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
           },
         }
       );
@@ -39,6 +41,8 @@ export default function Housingapi() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
           },
         }
       );

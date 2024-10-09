@@ -1,9 +1,8 @@
-import axios from 'axios';
-import React, { useEffect, useState } from 'react'
-import DataTable from 'react-data-table-component';
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import DataTable from "react-data-table-component";
 import { Link } from "react-router-dom";
-import { toast } from 'react-toastify';
-
+import { toast } from "react-toastify";
 
 function BusinessWA() {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -12,14 +11,13 @@ function BusinessWA() {
 
   const getUploadedData = async () => {
     try {
-      const responce = await axios.get(
-        `${apiUrl}/Businesswtspmessage`, {
+      const responce = await axios.get(`${apiUrl}/Businesswtspmessage`, {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
-      }
-      );
+      });
       setuploaddata(responce?.data?.data);
     } catch (error) {
       console.log(error);
@@ -32,21 +30,20 @@ function BusinessWA() {
 
   const columns = [
     {
-      name: 'Name',
-      selector: row => row.fromname,
-      sortable: true
+      name: "Name",
+      selector: (row) => row.fromname,
+      sortable: true,
     },
     {
-      name: 'Phone',
-      selector: row => (row.fromphone),
-      sortable: true
+      name: "Phone",
+      selector: (row) => row.fromphone,
+      sortable: true,
     },
     {
-        name: 'Message',
-        selector: row => (row.message),
-        sortable: true
-      },
-      
+      name: "Message",
+      selector: (row) => row.message,
+      sortable: true,
+    },
   ];
   const [file, setFile] = useState(null);
   const allowedFileTypes = ["text/csv"];
@@ -66,30 +63,27 @@ function BusinessWA() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const response = await fetch(
-        `${apiUrl}/ExcelUplodeContactdata`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch(`${apiUrl}/ExcelUplodeContactdata`, {
+        method: "POST",
+        body: formData,
+      });
       const data = await response.json();
       toast.success(data.message);
     } catch (error) {
       toast.warn(error.data.message);
     }
-  }
+  };
 
   const handleDownload = () => {
-    const fileUrl = 'ExcelUplodeData/sample.csv';
-    const link = document.createElement('a');
-     link.href = fileUrl;
-     link.target = '_blank';
-     link.download = 'sample.csv'; 
-     document.body.appendChild(link);
-     link.click();
-     document.body.removeChild(link);
-   };
+    const fileUrl = "ExcelUplodeData/sample.csv";
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.target = "_blank";
+    link.download = "sample.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const customStyles = {
     cells: {
@@ -128,27 +122,20 @@ function BusinessWA() {
         <section className="content content-header  py-5">
           <div className="container">
             <div className="panel panel-bd lobidrag lobipanel">
-              <div className="panel-heading">
-                
-              </div>
+              <div className="panel-heading"></div>
 
               <div className="panel-body bg-white ">
                 <div className="">
-
                   <DataTable
                     responsive
                     customStyles={customStyles}
                     columns={columns}
                     data={uploaddata}
-                    
                     fixedHeader
                     pagination
                     // selectableRowsHighlight
                     highlightOnHover
-
-                  >
-
-                  </DataTable>
+                  ></DataTable>
                 </div>
               </div>
             </div>
@@ -156,6 +143,6 @@ function BusinessWA() {
         </section>
       </div>
     </div>
-  )
-} 
+  );
+}
 export default BusinessWA;

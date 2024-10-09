@@ -28,6 +28,7 @@ import {
 } from "../../features/lostreasonSlice";
 import Loader from "../Loader";
 import axios from "axios";
+import Select from 'react-select'
 function Setting() {
   const apiUrl = process.env.REACT_APP_API_URL;
   const DBuUrl = process.env.REACT_APP_DB_URL;
@@ -111,6 +112,7 @@ function Setting() {
     agent_mobile: "",
     client_access: "",
     agent_status: "",
+    agents:[]
   });
 
   const [formDatastatus, setformDatastatus] = useState({
@@ -342,6 +344,8 @@ function Setting() {
       headers: {
         "Content-Type": "application/json",
         "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
       },
       body: JSON.stringify(companydetails),
     })
@@ -370,6 +374,8 @@ function Setting() {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
         },
       }
       );
@@ -395,10 +401,13 @@ function Setting() {
   const getTeamLeader=async ()=>{
     try {
       const responce = await axios.get(
-        `${apiUrl}/getAllTeamLeader`, {
+        // `${apiUrl}/getAllTeamLeader`, {
+        `${apiUrl}/get_all_agent`, {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
         },
       }
       );
@@ -562,7 +571,7 @@ function Setting() {
                             <i className="fa wiht fa-code" /> CRM Field
                           </a>
                         </li>
-                        <li>
+                        {/* <li>
                           <a
                             id="v-pills-loginhistory-tab"
                             data-toggle="pill"
@@ -574,7 +583,7 @@ function Setting() {
                             <i className="fa fa-sign" aria-hidden="true" />
                             Subscription
                           </a>
-                        </li>
+                        </li> */}
                         {/* <li>
                           <a
                             id="v-pills-loginhistory-tab"
@@ -2405,10 +2414,11 @@ function Setting() {
                                             <option value>User Type</option>
                                             <option value="user">Agent</option>
                                             <option value="TeamLeader">Team Leader</option>
+                                            <option value="GroupLeader">Group Leader</option>
                                           </select>
                                         </div>
                                       </div>
-                                      <div className="col-md-4" style={{display:assigntlnone}}>
+                                     {formData?.role=="user"&& <div className="col-md-4" style={{display:assigntlnone}}>
                                         <div className="form-group">
                                           <select
                                             value={formData?.assigntl}
@@ -2423,14 +2433,72 @@ function Setting() {
                                             id="aroll"
                                           >
 
-                                            <option value>Assign Team Leader</option>
-                                            {TeamLeader?.map((TeamLeader1)=>{  
+                                            <option value>Assignn Team Leader</option>
+                                            {/* {TeamLeader?.map((TeamLeader1)=>{  
                                               return(<option value={TeamLeader1?._id}>{TeamLeader1?.agent_name}</option>);
-                                            })}
-                                            
+                                            })} */}
+                                            {TeamLeader?.filter((leader) => leader.role === "TeamLeader")?.map((TeamLeader1) => (
+                                            <option key={TeamLeader1?._id} value={TeamLeader1?._id}>
+                                              {TeamLeader1?.agent_name}
+                                            </option>
+                                          ))}
                                           </select>
                                         </div>
-                                      </div>
+                                      </div>}
+                                            {/** by sanjiv select team leaders  */}
+                                      {/* {formData?.role=="GroupLeader"&&<div className="col-md-4" > */}
+                                      
+                                      {/*   by juhi  */}
+                                      {formData?.role=="TeamLeader"&&<div className="col-md-4" >
+                                        <div className="form-group">
+                                          <select
+                                          
+                                            value={formData?.assigntl}
+                                            className="form-control"
+                                            onChange={(e) =>
+                                              setFormData({
+                                                ...formData,
+                                                assigntl: e.target.value,
+                                              })
+                                            }
+                                            name="assigntl"
+                                            id="aroll"
+                                          >
+
+                                            <option value>Assign Group Leader</option>
+                                            {/* {TeamLeader?.map((TeamLeader1)=>{  
+                                              return(<option value={TeamLeader1?._id}>{TeamLeader1?.agent_name}</option>);
+                                            })} */}
+                                            {TeamLeader?.filter(leader => leader.role === "GroupLeader") // Filter by role
+                                          .map((filteredLeader) => (
+                                            <option key={filteredLeader._id} value={filteredLeader._id}>
+                                              {filteredLeader.agent_name}
+                                            </option>
+                                          ))}
+                                            
+                                          </select>
+
+                                        {/* <Select
+                                              closeMenuOnSelect={false}
+                                              // components={animatedComponents}
+                                              defaultValue={[]}
+                                              isMulti
+                                              onChange={e=>{
+                                                console.log(e)
+                                                setFormData({...formData, agents: e.map(agent=>agent.value)})
+                                              }}
+                                              // options={TeamLeader?.map(v=>{return{label:v.agent_name, value:v?._id}})}
+                                              
+                                              options={TeamLeader
+                                                ?.filter(leader => leader.role === "GroupLeader") // Filter based on role
+                                                .map(leader => ({
+                                                  label: leader.agent_name,
+                                                  value: leader._id,
+                                                }))
+                                              }
+                                            /> */}
+                                        </div>
+                                      </div>}
 
                                       {/* <div className="col-md-3">
                                         <div className="form-group">
@@ -2507,7 +2575,7 @@ function Setting() {
                                               </th>
                                               <th className="sorting">Roll</th>
                                               <th className="sorting">
-                                               Assign TeamLeader
+                                               Assign To
                                               </th>
                                              
                                                <th className="sorting">
@@ -2534,7 +2602,7 @@ function Setting() {
                                                   var client_access1 =
                                                     "checked";
                                                 }
-
+                                                const matchingAgentRole = agent?.agent.find(a => a._id === agents?.agent_details[0]?._id)?.role || "Role not found";
                                                 return (
                                                   <tr
                                                     role="row"
@@ -2563,6 +2631,10 @@ function Setting() {
 
                                                     <td className="sorting_1">
                                                        {agents?.agent_details[0]?.agent_name}
+
+                                                       
+                                                       {matchingAgentRole !== "Role not found" && ` (${matchingAgentRole})`}
+                                                        
                                                     </td>
                                                     {/* <td className="sorting_1">
                                                       Client Access

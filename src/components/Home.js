@@ -13,7 +13,7 @@ import axios from "axios";
 import MyCalendar from "../components/Pages/MonthlyCalendar";
 import Notification from "./Notification";
 import CallBarchart from "./Pages/CallBarchart";
-
+import toast from "react-hot-toast";
 function Home() {
   const apiUrl = process.env.REACT_APP_API_URL;
   const DBuUrl = process.env.REACT_APP_DB_URL;
@@ -22,7 +22,114 @@ function Home() {
   const [leadsourcedata1, setleadsourcedata] = useState([]);
   var { agent } = useSelector((state) => state.agent);
   const { leadSourcedata } = useSelector((state) => state.leadSource);
+  const [agentss, setAgents] = useState([]);
+  const [filterAgentss, setFilteredAgents] = useState([]);
+  const [selectedGroupLeader, setSelectedGroupLeader] = useState("");
   const dispatch = useDispatch();
+  console.log("agentssssssssstlllll",agentss)
+  const [agentDetails, setAgentDetails] = useState([]);
+  const userRole = localStorage.getItem("role");
+
+  const converTtime = (ffgfgf) => {
+    const second = ffgfgf;
+    const hours = Math.floor(second / 3600);
+    const minutes = Math.floor((second % 3600) / 60);
+    const remainingSeconds = second % 60;
+    const timeconverted =
+      hours +
+      "h " +
+      minutes +
+      "m " +
+      remainingSeconds +
+      "s";
+    return timeconverted;
+  };
+
+
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        // const response = await axios.get(agentsApiUrl);
+        const response = await axios.get( `${apiUrl}/get_all_agent/`);
+        console.log('API response:', response.data);
+        if (response.data.success) {
+          const agentsData = response.data.agent || []; // Corrected key
+          console.log('Agents data:', agentsData);
+          setAgents(agentsData);
+        } else {
+          toast.warn(response.data.message);
+        }
+      } catch (error) {
+        toast.warn("Error fetching agents");
+      }
+    };
+
+    fetchAgents();
+  }, []);
+
+  const filterAgents = (agentsData) => {
+    if (userRole === "admin") {
+      return agentsData.filter((agent) => agent.role === "GroupLeader");
+    }
+    return [];
+  };
+  useEffect(() => {
+    setFilteredAgents(filterAgents(agentss));
+  }, [agentss, userRole]);
+  
+  // const handleGroupLeaderChange = (e) => {
+  //   const selectedId = e.target.value;
+  //   setSelectedGroupLeader(selectedId);
+
+  //   if (selectedId) {
+  //     // Call the function to fetch data based on selected GroupLeader ID
+  //     GetUserCallAccordingToGroupLeader(selectedId);
+  //   }
+  // };
+  const handleGroupLeaderChange = (e) => {
+    const selectedId = e.target.value;
+    setSelectedGroupLeader(selectedId);
+
+    if (selectedId) {
+      
+      if (userRole === "admin") {
+        GetUserCallAccordingToGroupLeader1(selectedId); // Call for Admin
+      } else if (userRole === "GroupLeader") {
+        handleTeamLeaderChange(selectedId); // Call for Group Leader
+      }
+      else if (userRole === "TeamLeader") {
+        handleTeam1LeaderChange(selectedId); // Call for Group Leader
+      }
+    }
+  };
+
+  // Function for Group Leader change event
+  const handleTeamLeaderChange = (selectedId) => {
+    setSelectedGroupLeader(selectedId);
+    if (selectedId) {
+      GetUserCallAccordingToGroupLeader1(selectedId); 
+    }
+  };
+  const handleTeam1LeaderChange = (selectedId) => {
+    setSelectedGroupLeader(selectedId);
+    if (selectedId) {
+      getHigstNoOfCall1(); 
+    }
+  };
+
+  // Filter agents based on the user's role
+  const filteredAgents = agentss.filter((agent) => {
+    const loggedInUserId = localStorage.getItem("user_id"); // Assuming the logged-in user ID is stored in localStorage
+  
+    if (userRole === "admin") {
+      return agent.role === "GroupLeader"; 
+    } else if (userRole === "TeamLeader") {
+      return agent.role === "user" && agent.assigntl === loggedInUserId;
+    } else if (userRole === "GroupLeader") {
+      return agent.role === "TeamLeader" && agent.assigntl === loggedInUserId;
+    }
+    return false; 
+  });
   useEffect(() => {
     const fetchData1 = async () => {
       try {
@@ -39,7 +146,8 @@ function Home() {
       getSale();
       getAllLeadSourceOverview();
       dispatch(getAllAgent());
-      getHigstNoOfCall();
+      // getHigstNoOfCall();
+      GetAllUserCallLogByAdminId();
       getLeadCountData();
       AgentWishLeadCount1({
         role: localStorage.getItem("user_id"),
@@ -56,6 +164,21 @@ function Home() {
         })
       );
       GetUserCallAccordingToTeamLeader(localStorage.getItem("user_id"));
+      AgentWishLeadCount1({
+        role: localStorage.getItem("user_id"),
+        user_id: localStorage.getItem("user_id"),
+      });
+    }
+    if (localStorage.getItem("role") === "GroupLeader") {
+      YearlySaleApiForGroupLeader();
+      LeadSourceOverviewApiForGroupLeader();
+      DashboardLeadCountOfUserByGroupLeader();
+      dispatch(
+        getAllAgentWithData({
+          assign_to_agent: localStorage.getItem("user_id"),
+        })
+      );
+      GetUserCallAccordingToGroupLeader(localStorage.getItem("user_id"));
       AgentWishLeadCount1({
         role: localStorage.getItem("user_id"),
         user_id: localStorage.getItem("user_id"),
@@ -91,6 +214,7 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
           },
         }
       );
@@ -107,6 +231,38 @@ function Home() {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
+      setDetail(responce?.data?.array);
+    } catch (error) {
+      console.log(error);
+      setDetail(error.responce?.data?.array);
+    }
+  };
+  const getHigstNoOfCall1 = async () => {
+    try {
+      const responce = await axios.get(`${apiUrl}/GetAllUserCallLogById/`, {
+        headers: {
+          "Content-Type": "application/json",
+          "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
+      // setDetail(responce?.data?.array);
+      setAgentDetails(responce?.data?.array || []);
+    } catch (error) {
+      console.log(error);
+      setAgentDetails([]);
+    }
+  };
+  const GetAllUserCallLogByAdminId = async () => {
+    try {
+      const responce = await axios.get(`${apiUrl}/GetAllUserCallLogByAdminId/`, {
+        headers: {
+          "Content-Type": "application/json",
+          "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
       setDetail(responce?.data?.array);
@@ -127,22 +283,96 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
           },
         }
       );
+      // setAgentDetails(responce?.data?.array || []);
       setDetail(responce?.data?.array);
     } catch (error) {
       console.log(error);
       setDetail(error.responce?.data?.array);
+      // setAgentDetails([]);
+    }
+  };
+  const GetUserCallAccordingToTeamLeader1 = async (assign_to_agent) => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/GetUserCallAccordingToTeamLeader`,
+        {
+          assign_to_agent,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        }
+      );
+      setAgentDetails(responce?.data?.array || []);
+      // setDetail(responce?.data?.array);
+    } catch (error) {
+      console.log(error);
+      // setDetail(error.responce?.data?.array);
+      setAgentDetails([]);
     }
   };
 
+  const GetUserCallAccordingToGroupLeader = async (assign_to_agent) => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/GetUserCallAccordingToGroupLeader`,
+        {
+          assign_to_agent,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        }
+      );
+      // setAgentDetails(responce?.data?.array || []);
+      setDetail(responce?.data?.array );
+    } catch (error) {
+      console.log(error);
+      setDetail(error.responce?.data?.array);
+      // setAgentDetails([]);
+    }
+  };
+  const GetUserCallAccordingToGroupLeader1 = async (assign_to_agent) => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/GetUserCallAccordingToGroupLeader`,
+        {
+          assign_to_agent,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        }
+      );
+      setAgentDetails(responce?.data?.array || []);
+      // setDetail(responce?.data?.array );
+    } catch (error) {
+      console.log(error);
+      // setDetail(error.responce?.data?.array);
+      setAgentDetails([]);
+    }
+  };
   const getSale = async () => {
     try {
       const responce = await axios.get(`${apiUrl}/YearlySaleApi`, {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
         },
       });
       setSale(responce?.data?.details);
@@ -162,6 +392,8 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
           },
         }
       );
@@ -170,6 +402,28 @@ function Home() {
       console.log(error);
     }
   };
+  const YearlySaleApiForGroupLeader = async () => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/YearlySaleApiForGroupLeader`,
+        {
+          user_id: localStorage.getItem("user_id"),
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
+          },
+        }
+      );
+      setSale(responce?.data?.details);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const YearlySaleApiForUser = async () => {
     try {
       const responce = await axios.post(
@@ -181,6 +435,8 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
           },
         }
       );
@@ -196,6 +452,7 @@ function Home() {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
       setleadsourcedata(responce?.data?.Lead_source_count);
@@ -215,6 +472,30 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
+          },
+        }
+      );
+      setleadsourcedata(responce?.data?.Lead_source_count);
+      setleadsource(responce?.data?.Lead_source_name);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const LeadSourceOverviewApiForGroupLeader = async () => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/LeadSourceOverviewApiForGroupLeader`,
+        {
+          user_id: localStorage.getItem("user_id"),
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
           },
         }
       );
@@ -235,6 +516,8 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
           },
         }
       );
@@ -252,6 +535,7 @@ function Home() {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
       setleadcountdata(responce?.data?.Count);
@@ -277,11 +561,12 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
           },
         }
       );
-     setleadcountdata(responce?.data?.Count);
-
+      setleadcountdata(responce?.data?.Count);
     } catch (error) {
       console.log(error);
       setleadcountdata(error.responce?.data?.Count);
@@ -298,6 +583,28 @@ function Home() {
           headers: {
             "Content-Type": "application/json",
             "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        }
+      );
+      setleadcountdata(responce?.data?.Count);
+    } catch (error) {
+      console.log(error);
+      setleadcountdata(error.responce?.data?.Count);
+    }
+  };
+  const DashboardLeadCountOfUserByGroupLeader = async () => {
+    try {
+      const responce = await axios.post(
+        `${apiUrl}/DashboardLeadCountOfUserByGroupLeader`,
+        {
+          user_id: localStorage.getItem("user_id"),
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
           },
         }
       );
@@ -634,7 +941,94 @@ function Home() {
                 </div>
               </div> */}
             </div>
+            {localStorage.getItem("role") === "admin" || localStorage.getItem("role") === "GroupLeader"  ? (
+            <div className="row">
+            <div className="col-md-6   mob-left-right col-xs-12">
+              
+                      <div className="row">
+                        <div className="col-md-4 pd-top mobile-hids">
+                          <label htmlFor="lead_source">Team Performance </label>
+                        </div>
+                        <div className="col-md-8 mob-left-right col-xs-12">
+                        {localStorage.getItem("role") === "admin" || localStorage.getItem("role") === "GroupLeader"  ? (
+                          <div className="form-group">
+                            <select 
+                             onChange={handleGroupLeaderChange} 
+                             value={selectedGroupLeader}
+                              className="form-control"
+                              
+                            >
+                              <option value="">Select</option>
+                              {filteredAgents.length > 0 ? (
+                                filteredAgents.map((agent) => (
+                                  <option key={agent._id} value={agent._id}>
+                                    {agent.agent_name}
+                                  </option>
+                                ))
+                              ) : (
+                                <option disabled>No agents found</option>
+                              )}
 
+                              
+                            </select>
+                            <span className="text-danger ferror"> </span>
+                           
+                          </div>
+                           ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-6   mob-left-right col-xs-12">
+
+                      <div className="row">
+                        
+                        <div className="col-md-8 mob-left-right col-xs-12">
+                        {localStorage.getItem("role") === "admin" || localStorage.getItem("role") === "GroupLeader" ? (
+                          <div className="form-group">
+                            
+                           
+                            {agentDetails.length > 0 ? (
+                                    <table>
+                                      <thead>
+                                        <tr>
+                                          <th>Username</th>
+                                          <th>Highest No of Calls</th>
+                                          <th>Total Time</th>
+                                          {/* <th>Average Time</th> */}
+                                        </tr>
+                                      </thead>
+                                      {/* <tbody>
+                                        {agentDetails.map((detail) => (
+                                          <tr key={detail.user_id}>
+                                            <td>{detail.username}</td>
+                                            <td>{detail.HigstNoOfCall}</td>
+                                            <td>{detail.TotalTime}</td>
+                                            <td>{detail.AvrageTime}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody> */}
+                                      <tfoot>
+                                          <tr>
+                                            <td><strong>Total</strong></td>
+                                            <td>{agentDetails.reduce((acc, detail) => acc + detail.HigstNoOfCall, 0)}</td>
+                                            <td>{converTtime(agentDetails.reduce((acc, detail) => acc + detail.TotalTime, 0))}</td>
+                                            {/* <td>{(
+                                              agentDetails.reduce((acc, detail) => acc + detail.AvrageTime, 0) / (agentDetails.length || 1)
+                                            ).toFixed(2)}</td>  */}
+                                          </tr>
+                                        </tfoot>
+                                    </table>
+                                  ) : (
+                                    <p>No agent details available</p>
+                                  )}
+                          </div>
+                          ) : null}
+                              
+                        </div>
+                      </div>
+                    </div>
+            </div>
+            ):null}
             {/* /.row */}
             {/* Main row */}
 
@@ -850,7 +1244,7 @@ function Home() {
                                 <div className="d-flex justify-content-between w-100 flex-wrap">
                                   <h6 className="mb-0 ms-3">
                                     {" "}
-                                    {Details?.username}
+                                    {Details?.username} ({Details.role})
                                   </h6>
                                   <div className="d-flex"></div>
                                 </div>
@@ -861,7 +1255,7 @@ function Home() {
                                       className="fa fa-phone"
                                       aria-hidden="true"
                                     ></i>{" "}
-                                    {Details?.HigstNoOfCall}{" "}
+                                   {Details?.HigstNoOfCall}{" "}
                                   </h6>
                                   <div className="d-flex"></div>
                                 </div>
@@ -917,7 +1311,7 @@ function Home() {
                     </div>
                   </div>
 
-                  <div className="panel-body personal">
+              <div className="panel-body personal">
                     <div className="card-bodyes  ">
                       <ul className="p-0 m-0">
                         <li className="mb-1 d-flex justify-content-between align-items-center">
@@ -935,7 +1329,7 @@ function Home() {
                               <div className="d-flex justify-content-between w-100 flex-wrap">
                                 <h6 className="mb-0 ms-3">
                                   {" "}
-                                  {LeadCount1?.name}
+                                  {LeadCount1?.name} ({LeadCount1.role})
                                 </h6>
                                 <div className="d-flex"></div>
                               </div>
@@ -946,7 +1340,7 @@ function Home() {
                                 <h6 className="mb-0 ms-3">
                                   {" "}
                                   <span className="badge badge-primaryess light border-0">
-                                    {LeadCount1?.Value}
+                                    {LeadCount1?.Value} 
                                   </span>
                                 </h6>
                                 <div className="d-flex"></div>
@@ -1227,7 +1621,6 @@ function Home() {
                   </div>
                 </div>
               </div>
-              
             </div>
 
             {/* /.row (main row) */}

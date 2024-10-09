@@ -26,6 +26,31 @@ export default function Incomereport() {
   const dispatch = useDispatch();
   const [llll, setllll] = useState('block');
   const [llll1, setllll1] = useState('none');
+  
+  const [agentss, setAgents] = useState([]);
+
+  // console.log("agentssssssssstlllll",agentss)
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        // const response = await axios.get(agentsApiUrl);
+        const response = await axios.get( `${apiUrl}/get_all_agent/`);
+        console.log('API response:', response.data);
+        if (response.data.success) {
+          const agentsData = response.data.agent || []; // Corrected key
+          console.log('Agents data:', agentsData);
+          setAgents(agentsData);
+        } else {
+          toast.warn(response.data.message);
+        }
+      } catch (error) {
+        toast.warn("Error fetching agents");
+      }
+    };
+
+    fetchAgents();
+  }, []);
+
   const getAllLeadSourceOverview1 = async () => {
     try {
       const responce = await axios.post(
@@ -33,6 +58,8 @@ export default function Incomereport() {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
         }
       }
       );
@@ -80,6 +107,11 @@ export default function Incomereport() {
       dispatch(getAllAgentWithData({assign_to_agent:localStorage.getItem("user_id")}));
       getAllLeadSourceOverview2({assign_to_agent:localStorage.getItem("user_id")});
     }
+    if (localStorage.getItem("role")==='GroupLeader') {   
+      dispatch(getAllAgentWithData({assign_to_agent:localStorage.getItem("user_id")}));
+      // getAllLeadSourceOverview2({assign_to_agent:localStorage.getItem("user_id")});
+      getAllLeadSourceOverview1();
+    }
     if(localStorage.getItem("role")==='user'){
       dispatch(getAllAgent({assign_to_agent:localStorage.getItem("user_id")}));
      }
@@ -92,19 +124,24 @@ export default function Incomereport() {
   };
 
 
+  const [submittedAgentName, setSubmittedAgentName] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const [getLeadData, setLeadData] = useState([]);
   const [getLeadData1, setLeadData1] = useState([]);
+  
   const getEmployeeReport = async (e) => {
     e.preventDefault();
     const data1={...data,role:localStorage.getItem("role"),user_id:localStorage.getItem("user_id")}
     const headers = {
       "Content-Type": "application/json",
       "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+
     };
     try {
       const responce = await axios.post(
-        `${apiUrl}/EmployeesReportDetailByFilter`,
+        `${apiUrl}/EmployeesReportDetailByFilter1`,
         data1,
         { headers }
       );
@@ -113,6 +150,11 @@ export default function Incomereport() {
       toast(responce?.data?.message);
       setllll('none')
       setllll1('block')
+
+      const selectedAgent = agent?.agent?.find((agents) => agents._id === data.agent);
+    setSubmittedAgentName(selectedAgent?.agent_name || ""); // Set the selected agent's name
+    setIsSubmitted(true); // Mark the form as submitted
+
     } catch (error) {
       setLeadData();
       toast(error?.response?.data?.message);
@@ -125,6 +167,91 @@ export default function Incomereport() {
       sortable: true,
     },
     {
+      name: "GM",
+      selector: (row) => {
+        if (Array.isArray(agentss)) {
+       
+          const teamLeader = agentss.find((agents) => agents._id === row?.assign_to_agent && agents.role === "TeamLeader");
+    
+          
+          const matchingAgent = agentss.find((agents) => agents._id === row?.assign_to_agent);
+    
+        if (matchingAgent) {
+         
+          if (matchingAgent.role === "GroupLeader") {
+            return `${matchingAgent.agent_name}`;
+          }
+          if (matchingAgent.role === "TeamLeader") {
+            return matchingAgent.agent_details.length > 0
+              ? matchingAgent.agent_details[0].agent_name
+              : "";
+          }
+          if (matchingAgent.role === "user") {
+            const userAgentDetails = matchingAgent.agent_details;
+    
+            if (userAgentDetails.length > 0) {
+              const teamLeader = agentss.find(
+                (agent) => agent._id === userAgentDetails[0]._id && agent.role === "TeamLeader"
+              );
+              if (teamLeader.role === "TeamLeader") {
+                return teamLeader.agent_details.length > 0 
+                ? teamLeader.agent_details[0].agent_name 
+                : "";
+              }
+            }
+          }
+        }
+          return "No Team Leader"; // Return if no Team Leader was found
+        } else {
+          return "Agent data unavailable"; // Handle the case where agent is not an array
+        }
+      },
+      sortable: true,
+    },
+    {
+      name: "TL",
+      selector: (row) => {
+        if (Array.isArray(agentss)) {
+          const matchingAgent = agentss.find((agents) => agents._id === row?.assign_to_agent);
+
+          if (matchingAgent) {
+            if (matchingAgent.role === "TeamLeader") {
+              return matchingAgent.agent_name;
+            }
+            if (matchingAgent.role === "GroupLeader") {
+              return `${matchingAgent.agent_name} (GM)`; 
+            }
+           
+            if (matchingAgent.role === "user") {
+              return matchingAgent.agent_details && matchingAgent.agent_details.length > 0 
+                ? matchingAgent.agent_details[0].agent_name 
+                : " "; 
+            }
+          }
+    
+          
+          return " ";
+        } else {
+          return "Agent data unavailable"; // Handle case where agentss is not an array
+        }
+      },
+      sortable: true,
+    },
+      {
+        name: "User",
+        // selector: (row) => row?.assign_to_agent,
+        selector: (row) => {
+          if (Array.isArray(agentss)) {
+            // Find the agent by ID and check their role
+            const userAgent = agentss.find((agents) => agents._id === row?.assign_to_agent && agents.role === "user");
+            return userAgent ? userAgent.agent_name : "";
+          } else {
+            return ""; 
+          }
+        },
+        sortable: true,
+      },
+      {
       name: "Client Name",
       selector: (row) => row?.full_name,
       sortable: true,
@@ -268,13 +395,14 @@ export default function Incomereport() {
                                             agent: e.target.value,
                                           })
                                         }
+                                        
                                       >
                                         <option value="">Select Employee</option>
 
                                         {agent?.agent?.map((agents, key) => {
                                           return (
                                             <option value={agents._id}>
-                                              {agents.agent_name}
+                                              {agents.agent_name}  ({agents.role})
                                             </option>
                                           );
                                         })}
@@ -390,6 +518,9 @@ export default function Incomereport() {
                       }
                         
                         <div className="card-headers">
+                        {isSubmitted && submittedAgentName && (
+                          <h4>Assign To : {submittedAgentName}</h4>
+                        )}
                           <DataTable
                             className="custom-datatable"
                             responsive

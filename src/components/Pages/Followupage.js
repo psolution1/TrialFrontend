@@ -22,7 +22,6 @@ export default function Followupage() {
     followup_date: new Date(), // Initialize with the current date
   });
 
-
   const apiUrl = process.env.REACT_APP_API_URL;
   const DBuUrl = process.env.REACT_APP_DB_URL;
   const navigate = useNavigate();
@@ -33,7 +32,7 @@ export default function Followupage() {
   const { leadSourcedata } = useSelector((state) => state.leadSource);
 
   const { followup } = useSelector((state) => state.followup);
-  const followupDesc = followup?.followuplead?.[0]?.followup_desc || '';
+  const followupDesc = followup?.followuplead?.[0]?.followup_desc || "";
   const { lostreason } = useSelector(
     (state) => state.lostreasonSlice?.LostReasondata
   );
@@ -42,10 +41,30 @@ export default function Followupage() {
   const _id = useParams();
   const { lead, loading } = useSelector((state) => state.lead);
   const foundObject = lead?.lead?.find((obj) => obj._id === _id.id);
+  // const followupDatee = foundObject ? foundObject.followup_date : null;
+  // console.log('datetirm',followupDatee)
   const AllDetails = useSelector((state) => state.lead?.lead1?.leads?.["0"]);
   const [data, setdata] = useState({
+    followup_date: new Date(), 
     followup_desc: localDetails?.massage_of_calander,
   });
+
+  const [followupDate, setFollowupDate] = useState(null);
+
+  // Effect to set followupDate from foundObject
+  useEffect(() => {
+    if (foundObject && foundObject.followup_date) {
+      const date = new Date(foundObject.followup_date);
+      if (!isNaN(date.getTime())) { // Ensure it's a valid date
+        setFollowupDate(date);
+      }
+    }
+  }, [foundObject]);
+
+  const handleDateChange = (date) => {
+    setFollowupDate(date);
+    // You can also update the foundObject or perform other actions here
+  };
   useEffect(() => {
     setLocalDetails(AllDetails || {});
   }, [AllDetails]);
@@ -71,12 +90,19 @@ export default function Followupage() {
     dispatch(getAllProductService());
     dispatch(getAllLeadSource());
     getStateByCountry(localDetails.country);
-    console.log(localDetails.country)
+    console.log(localDetails.country);
 
     if (localStorage.getItem("role") === "admin") {
       dispatch(getAllAgent());
     }
     if (localStorage.getItem("role") === "TeamLeader") {
+      dispatch(
+        getAllAgentWithData({
+          assign_to_agent: localStorage.getItem("user_id"),
+        })
+      );
+    }
+    if (localStorage.getItem("role") === "GroupLeader") {
       dispatch(
         getAllAgentWithData({
           assign_to_agent: localStorage.getItem("user_id"),
@@ -112,7 +138,7 @@ export default function Followupage() {
   };
 
   const getStateByCountry = (data) => {
-    console.log('sdfds', data)
+    console.log("sdfds", data);
     dispatch(getStatebycountry(data));
   };
 
@@ -120,6 +146,8 @@ export default function Followupage() {
     e.preventDefault();
     const headers = {
       "Content-Type": "application/json",
+
+      Authorization: "Bearer " + localStorage.getItem("token"),
     };
     try {
       const responce = await axios.put(
@@ -184,7 +212,9 @@ export default function Followupage() {
     const [hour, minute] = time.split(":");
 
     // Construct a new ISO string without any timezone adjustment
-    const adjustedFollowupDate = new Date(year, month - 1, day, hour, minute).toISOString().slice(0, 16);
+    const adjustedFollowupDate = new Date(year, month - 1, day, hour, minute)
+      .toISOString()
+      .slice(0, 16);
 
     const updatedLeadData = await {
       ...data,
@@ -209,19 +239,22 @@ export default function Followupage() {
 
   const submitFollowup = async (e) => {
     e.preventDefault();
-  
+
     // Retrieve followup_date from data
-    const followupDate = dataa.followup_date;
-  
+    // const followupDate = data.followup_date;
+    // const followupDate = followupDate.followup_date;
+    const followupDateValue = followupDate;
     // Check if followupDate is defined and not null
-    if (!followupDate) {
+    if (!followupDateValue) {
       toast.warn("Followup date is required");
       return;
     }
-  
+
     // Convert followupDate to ISO string without timezone adjustment
-    const adjustedFollowupDate = new Date(followupDate).toISOString().slice(0, 16);
-  
+    const adjustedFollowupDate = new Date(followupDateValue)
+      .toISOString()
+      .slice(0, 16);
+
     const updatedLeadData = {
       ...data,
       lead_id: e.target.lead_id.value,
@@ -230,12 +263,13 @@ export default function Followupage() {
       followup_status_id: e.target.elements.followup_status_id?.value,
       followup_date: adjustedFollowupDate,
     };
-  
+
     if (updatedLeadData.lead_id) {
       try {
         const response = await dispatch(addfollowup(updatedLeadData));
         if (response.payload.success === true) {
-          navigate(-1);
+          // navigate(-1);
+          window.location.reload();
           toast.success(response.payload?.message);
         } else {
           toast.warn(response.payload?.message);
@@ -248,8 +282,6 @@ export default function Followupage() {
       toast.warn("All fields are required");
     }
   };
-  
-
 
   /////////for attechment //////
   const [file, setFile] = useState(null);
@@ -649,7 +681,7 @@ export default function Followupage() {
                                       <select
                                         disabled={
                                           localStorage.getItem("role") ===
-                                            "user"
+                                          "user"
                                             ? true
                                             : false
                                         }
@@ -672,14 +704,14 @@ export default function Followupage() {
                                             <option
                                               selected={
                                                 foundObject?.assign_to_agent ===
-                                                  agents._id
+                                                agents._id
                                                   ? "selected"
                                                   : ""
                                               }
                                               value={agents._id}
                                             >
                                               {" "}
-                                              {agents.agent_name}
+                                              {agents.agent_name}           ({agents.role})
                                             </option>
                                           );
                                         })}
@@ -707,7 +739,7 @@ export default function Followupage() {
                                               <option
                                                 selected={
                                                   foundObject?.status ===
-                                                    status._id
+                                                  status._id
                                                     ? "selected"
                                                     : ""
                                                 }
@@ -751,7 +783,7 @@ export default function Followupage() {
                                             <option
                                               selected={
                                                 foundObject?.status ===
-                                                  lostreason1?._id
+                                                lostreason1?._id
                                                   ? "selected"
                                                   : ""
                                               }
@@ -794,20 +826,27 @@ export default function Followupage() {
                                       Followup
                                     </div>
                                     <div className="col-md-8 col-xs-8">
-                                        <DatePicker
-                                          selected={dataa.followup_date}
-                                          onChange={(date) => setData({ ...data, followup_date: date })}
-                                          showTimeSelect
-                                          timeFormat="hh:mm aa"
-                                          timeIntervals={5}
-                                          timeCaption="Time"
-                                          dateFormat="dd/MM/yyyy h:mm aa" // Custom format: day/month/year and 12-hour time
-                                          className="form-control"
-                                          placeholderText="Followup date"
-                                          name="followup_date"
-                                          id="followup_date"
-                                        />
-                                      </div>
+                                      <DatePicker
+                                        // selected={dataa.followup_date}
+                                        // onChange={(date) =>
+                                        //   setData({
+                                        //     ...data,
+                                        //     followup_date: date,
+                                        //   })
+                                        // }
+                                        selected={followupDate}
+                                       onChange={handleDateChange}
+                                        showTimeSelect
+                                        timeFormat="hh:mm aa"
+                                        timeIntervals={5}
+                                        timeCaption="Time"
+                                        dateFormat="dd/MM/yyyy h:mm aa" // Custom format: day/month/year and 12-hour time
+                                        className="form-control"
+                                        placeholderText="Followup date"
+                                        name="followup_date"
+                                        id="followup_date"
+                                      />
+                                    </div>
                                     {/* <div className="col-md-8 col-xs-8">
                                       <input
                                         onChange={(e) =>
@@ -842,7 +881,6 @@ export default function Followupage() {
                                             followup_desc: e.target.value,
                                           })
                                         }
-
                                         value={data?.followup_desc}
                                         // value={followupDesc}
                                         // onChange={(e) =>
@@ -1355,8 +1393,15 @@ export default function Followupage() {
                                           cols={40}
                                           rows={3}
                                           id="full_address"
-                                          value={localDetails.full_address || ''}
-                                          onChange={(e) => setLocalDetails({ ...localDetails, full_address: e.target.value })}
+                                          value={
+                                            localDetails.full_address || ""
+                                          }
+                                          onChange={(e) =>
+                                            setLocalDetails({
+                                              ...localDetails,
+                                              full_address: e.target.value,
+                                            })
+                                          }
                                           className="form-control"
                                           defaultValue={""}
                                         />
@@ -1517,7 +1562,7 @@ export default function Followupage() {
                                               <option
                                                 selected={
                                                   foundObject?.assign_to_agent ===
-                                                    agents._id
+                                                  agents._id
                                                     ? "selected"
                                                     : ""
                                                 }
@@ -1555,7 +1600,7 @@ export default function Followupage() {
                                                   <option
                                                     selected={
                                                       foundObject?.status ===
-                                                        status._id
+                                                      status._id
                                                         ? "selected"
                                                         : ""
                                                     }
@@ -1824,18 +1869,35 @@ export default function Followupage() {
                                             {/* </td> */}
 
                                             <td>
-                                              {follow?.created && (() => {
-                                                const date = new Date(follow?.created);
-                                                const day = String(date.getDate()).padStart(2, '0'); // Ensure 2-digit day
-                                                const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
-                                                const year = String(date.getFullYear()).slice(-2); // Get last 2 digits of year
-                                                const hours = date.getHours() % 12 || 12; // Convert to 12-hour format
-                                                const minutes = String(date.getMinutes()).padStart(2, '0'); // Ensure 2-digit minutes
-                                                const seconds = String(date.getSeconds()).padStart(2, '0'); // Ensure 2-digit seconds
-                                                const ampm = date.getHours() >= 12 ? 'PM' : 'AM'; // Determine AM/PM
+                                              {follow?.created &&
+                                                (() => {
+                                                  const date = new Date(
+                                                    follow?.created
+                                                  );
+                                                  const day = String(
+                                                    date.getDate()
+                                                  ).padStart(2, "0"); // Ensure 2-digit day
+                                                  const month = String(
+                                                    date.getMonth() + 1
+                                                  ).padStart(2, "0"); // Month is 0-based, so add 1
+                                                  const year = String(
+                                                    date.getFullYear()
+                                                  ).slice(-2); // Get last 2 digits of year
+                                                  const hours =
+                                                    date.getHours() % 12 || 12; // Convert to 12-hour format
+                                                  const minutes = String(
+                                                    date.getMinutes()
+                                                  ).padStart(2, "0"); // Ensure 2-digit minutes
+                                                  const seconds = String(
+                                                    date.getSeconds()
+                                                  ).padStart(2, "0"); // Ensure 2-digit seconds
+                                                  const ampm =
+                                                    date.getHours() >= 12
+                                                      ? "PM"
+                                                      : "AM"; // Determine AM/PM
 
-                                                return `${day}/${month}/${year} ${hours}:${minutes}:${seconds} `;
-                                              })()}
+                                                  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds} `;
+                                                })()}
                                             </td>
 
                                             <td>
@@ -1852,18 +1914,35 @@ export default function Followupage() {
                                             {/* </td> */}
 
                                             <td>
-                                              {follow?.followup_date && (() => {
-                                                const date = new Date(follow?.followup_date);
-                                                const day = String(date.getDate()).padStart(2, '0'); // Ensure 2-digit day
-                                                const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-based, so add 1
-                                                const year = String(date.getFullYear()).slice(-2); // Get last 2 digits of year
-                                                const hours = date.getHours() % 12 || 12; // Convert to 12-hour format
-                                                const minutes = String(date.getMinutes()).padStart(2, '0'); // Ensure 2-digit minutes
-                                                const seconds = String(date.getSeconds()).padStart(2, '0'); // Ensure 2-digit seconds
-                                                const ampm = date.getHours() >= 12 ? 'PM' : 'AM'; // Determine AM/PM
+                                              {follow?.followup_date &&
+                                                (() => {
+                                                  const date = new Date(
+                                                    follow?.followup_date
+                                                  );
+                                                  const day = String(
+                                                    date.getDate()
+                                                  ).padStart(2, "0"); // Ensure 2-digit day
+                                                  const month = String(
+                                                    date.getMonth() + 1
+                                                  ).padStart(2, "0"); // Month is 0-based, so add 1
+                                                  const year = String(
+                                                    date.getFullYear()
+                                                  ).slice(-2); // Get last 2 digits of year
+                                                  const hours =
+                                                    date.getHours() % 12 || 12; // Convert to 12-hour format
+                                                  const minutes = String(
+                                                    date.getMinutes()
+                                                  ).padStart(2, "0"); // Ensure 2-digit minutes
+                                                  const seconds = String(
+                                                    date.getSeconds()
+                                                  ).padStart(2, "0"); // Ensure 2-digit seconds
+                                                  const ampm =
+                                                    date.getHours() >= 12
+                                                      ? "PM"
+                                                      : "AM"; // Determine AM/PM
 
-                                                return `${day}/${month}/${year} ${hours}:${minutes}:${seconds} `;
-                                              })()}
+                                                  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds} `;
+                                                })()}
                                             </td>
                                             <td>{follow?.followup_desc}</td>
                                           </tr>

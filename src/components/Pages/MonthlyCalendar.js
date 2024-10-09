@@ -20,6 +20,8 @@
 //         headers: {
 //           "Content-Type": "application/json",
 //           "mongodb-url": DBuUrl,
+//           Authorization: "Bearer " + localStorage.getItem("token"),
+
 //         }
 //       });
 //       setData(response?.data?.lead);
@@ -37,6 +39,8 @@
 //         headers: {
 //           "Content-Type": "application/json",
 //           "mongodb-url": DBuUrl,
+//           Authorization: "Bearer " + localStorage.getItem("token"),
+
 //         }
 //       });
 //       setData(response?.data?.lead);
@@ -54,6 +58,8 @@
 //         headers: {
 //           "Content-Type": "application/json",
 //           "mongodb-url": DBuUrl,
+//Authorization: "Bearer " + localStorage.getItem("token"),
+
 //         }
 //       });
 //       setData(response?.data?.lead);
@@ -77,7 +83,7 @@
 //   const events = data.map((lead) => ({
 //     title: (
 //       <React.Fragment>
-//         {lead.massage_of_calander} --Client    
+//         {lead.massage_of_calander} --Client
 //         <Link to={`/followupleads/${lead._id}`}> : {lead.full_name}  </Link>
 //         and Agent : <Link to={`/followupleads/${lead._id}`}>{lead?.agent_details['0']?.agent_name} </Link>
 //       </React.Fragment>
@@ -145,14 +151,13 @@
 
 // export default MyCalendar;
 
-
-import React, { useEffect, useState } from 'react';
-import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
-import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import axios from 'axios';
-import Modal from './Modal';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { Calendar, momentLocalizer, Views } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import axios from "axios";
+import Modal from "./Modal";
+import { Link } from "react-router-dom";
 
 const MyCalendar = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -168,7 +173,8 @@ const MyCalendar = () => {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
-        }
+          Authorization: "Bearer " + localStorage.getItem("token"),
+        },
       });
       setData(response?.data?.lead);
     } catch (error) {
@@ -179,14 +185,18 @@ const MyCalendar = () => {
   const GetCalandarDataByTeamLeader = async () => {
     try {
       const response = await axios.post(
-        `${apiUrl}/GetCalandarDataByTeamLeader`, {
+        `${apiUrl}/GetCalandarDataByTeamLeader`,
+        {
           user_id: localStorage.getItem("user_id"),
-      }, {
-        headers: {
-          "Content-Type": "application/json",
-          "mongodb-url": DBuUrl,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
         }
-      });
+      );
       setData(response?.data?.lead);
     } catch (error) {
       console.log(error);
@@ -196,14 +206,18 @@ const MyCalendar = () => {
   const GetCalandarDataByUser = async () => {
     try {
       const response = await axios.post(
-        `${apiUrl}/GetCalandarDataByUser`, {
+        `${apiUrl}/GetCalandarDataByUser`,
+        {
           user_id: localStorage.getItem("user_id"),
-      }, {
-        headers: {
-          "Content-Type": "application/json",
-          "mongodb-url": DBuUrl,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
         }
-      });
+      );
       setData(response?.data?.lead);
     } catch (error) {
       console.log(error);
@@ -225,19 +239,24 @@ const MyCalendar = () => {
   const events = data.map((lead) => ({
     title: (
       <React.Fragment>
-        {lead.massage_of_calander} --Client    
-        <Link to={`/followupleads/${lead._id}`}> : {lead.full_name}  </Link>
-        and Agent : <Link to={`/followupleads/${lead._id}`}>{lead?.agent_details['0']?.agent_name} </Link>
+        {lead.massage_of_calander} --Client
+        <Link to={`/followupleads/${lead._id}`}> : {lead.full_name} </Link>
+        and Agent :{" "}
+        <Link to={`/followupleads/${lead._id}`}>
+          {lead?.agent_details["0"]?.agent_name}{" "}
+        </Link>
       </React.Fragment>
     ),
     start: new Date(lead.followup_date),
     end: new Date(lead.followup_date),
-    original: lead
+    original: lead,
   }));
 
   const handleEventSelect = (event) => {
-    const selectedDate = moment(event.start).format('YYYY-MM-DD');
-    const eventsOnSelectedDate = events.filter(e => moment(e.start).format('YYYY-MM-DD') === selectedDate);
+    const selectedDate = moment(event.start).format("YYYY-MM-DD");
+    const eventsOnSelectedDate = events.filter(
+      (e) => moment(e.start).format("YYYY-MM-DD") === selectedDate
+    );
     setSelectedEvents(eventsOnSelectedDate);
     setShowModal(true);
   };
@@ -254,11 +273,11 @@ const MyCalendar = () => {
     // Compare event date with the current date
     if (eventDate < currentDate) {
       return {
-        style: { backgroundColor: 'red', color: 'white' }, // Past event (red background)
+        style: { backgroundColor: "red", color: "white" }, // Past event (red background)
       };
     } else {
       return {
-        style: { backgroundColor: 'green', color: 'white' }, // Future event (green background)
+        style: { backgroundColor: "green", color: "white" }, // Future event (green background)
       };
     }
   };
@@ -275,8 +294,8 @@ const MyCalendar = () => {
       <tbody>
         {events.map((event, index) => (
           <tr key={index}>
-            <td>{moment(event.start).format('YYYY-MM-DD')}</td>
-            <td>{moment(event.start).format('HH:mm')}</td>
+            <td>{moment(event.start).format("YYYY-MM-DD")}</td>
+            <td>{moment(event.start).format("HH:mm")}</td>
             <td>{event.title}</td>
           </tr>
         ))}
@@ -291,7 +310,7 @@ const MyCalendar = () => {
         events={events}
         startAccessor="start"
         endAccessor="end"
-        views={['month', 'agenda']}
+        views={["month", "agenda"]}
         style={{ height: 400 }}
         components={{ agenda: { table: AgendaTable } }}
         eventPropGetter={customEventPropGetter}

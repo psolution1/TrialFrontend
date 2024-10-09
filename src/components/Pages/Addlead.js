@@ -171,7 +171,7 @@ function Addlead() {
                   </Link>
                 </button> */}
 
-              {(userRole === "admin" || userRole === "TeamLeader") && (
+              {(userRole === "admin" || userRole === "TeamLeader" || userRole === "GroupLeader") && (
                     <button
                       type="button"
                       style={{ float: "right" }}
@@ -410,7 +410,7 @@ function Addlead() {
                               <span className="text-danger ferror"> </span>
                             </div>
                           </>
-                        ) : localStorage.getItem("role") == "TeamLeader"?(
+                        ) : localStorage.getItem("role") == "GroupLeader"?(
                           <>
                             <div className="col-md-4 pd-top mobile-hids">
                               <label htmlFor="assign_to_agent">
@@ -442,7 +442,40 @@ function Addlead() {
                               <span className="text-danger ferror"> </span>
                             </div>
                           </>
-                         ):("")}
+                         ):localStorage.getItem("role") == "TeamLeader"?(
+                          <>
+                            <div className="col-md-4 pd-top mobile-hids">
+                              <label htmlFor="assign_to_agent">
+                                Assign to agent
+                              </label>
+                            </div>
+                            <div className="col-md-8 mob-left-right col-xs-12  form-group">
+                              <select
+                                name="assign_to_agent"
+                                onChange={(e) =>
+                                  setleaddata({
+                                    ...leaddata,
+                                    assign_to_agent: e.target.value,
+                                  })
+                                }
+                                className="form-control"
+                                required
+                              >
+                                <option value="">Select</option>
+
+                                {agent?.agent?.map((agents, key) => {
+                                  return (
+                                    <option value={agents._id}>
+                                      {agents.agent_name}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              <span className="text-danger ferror"> </span>
+                            </div>
+                          </>
+                         ):
+                         ("")}
 
                         <div className="col-md-4 pd-top mobile-hids">
                           <label htmlFor="status">

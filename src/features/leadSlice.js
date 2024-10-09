@@ -4,23 +4,21 @@ import {
   isRejectedWithValue,
 } from "@reduxjs/toolkit";
 
-
 const apiUrl = process.env.REACT_APP_API_URL;
 const DBuUrl = process.env.REACT_APP_DB_URL;
 
 export const addlead = createAsyncThunk(
   "addlead",
   async (data, { rejectWithValue }) => {
-    const responce = await fetch(`${apiUrl}/add_lead/`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "mongodb-url":DBuUrl,
-        },
-        body: JSON.stringify(data),
-      }
-    );
+    const responce = await fetch(`${apiUrl}/add_lead/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+      body: JSON.stringify(data),
+    });
     const result = await responce.json();
 
     if (result.success === true) {
@@ -34,14 +32,13 @@ export const addlead = createAsyncThunk(
 export const getAllLead = createAsyncThunk(
   "getAllLead",
   async (data, { rejectWithValue }) => {
-    const responce = await fetch(
-      `${apiUrl}/get_all_lead`,{
-        headers:{
-          "Content-Type": "application/json",
-          "mongodb-url":DBuUrl,
-        }
-      }
-    );
+    const responce = await fetch(`${apiUrl}/get_all_lead`, {
+      headers: {
+        "Content-Type": "application/json",
+        "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+    });
     const result = await responce.json();
 
     if (result.success === true) {
@@ -55,16 +52,16 @@ export const getAllLead = createAsyncThunk(
 export const getLeadById1 = createAsyncThunk(
   "getLeadById1",
   async (_id, { rejectWithValue }) => {
-     
-    const responce=await fetch(`${apiUrl}/get_lead_by_id/${_id}`,{
-        method:"GET",
-        headers:{
-          "Content-Type": "application/json",
-          "mongodb-url":DBuUrl,
-        }
-})
+    const responce = await fetch(`${apiUrl}/get_lead_by_id/${_id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+    });
     const result = await responce.json();
-     // console.log(result)
+    // console.log(result)
     if (result.success === true) {
       return result;
     } else {
@@ -73,26 +70,27 @@ export const getLeadById1 = createAsyncThunk(
   }
 );
 
+export const getLeadById = createAsyncThunk(
+  "getLeadById",
+  async (_id, { rejectWithValue }) => {
+    const responce = await fetch(`${apiUrl}/get_lead_by_id/${_id}`, {
+      method: "get",
+      headers: {
+        "Content-Type": "application/json",
+        "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
+      },
+    });
 
-
-export const getLeadById=createAsyncThunk("getLeadById",async(_id,{rejectWithValue})=>{
-        
-    const responce=await fetch(`${apiUrl}/get_lead_by_id/${_id}`,{
-                      method:"get",
-                      headers:{
-                        "Content-Type": "application/json",
-                        "mongodb-url":DBuUrl,
-                      },
-        })
-
-        const  result =await responce.json();
-       // console.log(result)
-        if(result.success===true){     
-          return result;   
-     }else{  
-         return rejectWithValue(result.message);
-     }  
- })
+    const result = await responce.json();
+    // console.log(result)
+    if (result.success === true) {
+      return result;
+    } else {
+      return rejectWithValue(result.message);
+    }
+  }
+);
 
 export const leadSource = createSlice({
   name: "lead",
@@ -136,7 +134,6 @@ export const leadSource = createSlice({
 
     /// getLeadById
 
-
     [getLeadById.pending]: (state) => {
       state.loading = true;
     },
@@ -146,11 +143,9 @@ export const leadSource = createSlice({
       state.lead1 = action.payload;
     },
     [getLeadById.rejected]: (state, action) => {
-      state.loading = false; 
+      state.loading = false;
       state.lead1 = action.payload;
     },
-
-
   },
 });
 

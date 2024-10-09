@@ -8,7 +8,22 @@ import { useDispatch, useSelector } from "react-redux";
 import { getAllAgent } from "../../features/agentSlice";
 import { getAllStatus } from "../../features/statusSlice";
 import { toast } from "react-toastify";
+import { addlead } from "../../features/leadSlice";
 // import ReactHTMLTableToExcel from 'react-html-table-to-excel'; // Import the library
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { addfollowup, getAllFollowup } from "../../features/followupSlice";
+const disposition = [
+  "Not Interested",
+  "Interested",
+  "Not Contacted",
+  "Not Answered",
+  "Callback",
+  "Not Reachable",
+  "Call Disconnected",
+  "Busy",
+  "Won"
+];
 
 export const AllNewLead = ({ sendDataToParent, dataFromParent }) => {
   const dispatch = useDispatch();
@@ -25,6 +40,175 @@ export const AllNewLead = ({ sendDataToParent, dataFromParent }) => {
   const { Statusdata } = useSelector((state) => state.StatusData);
   const apiUrl = process.env.REACT_APP_API_URL;
   const DBuUrl = process.env.REACT_APP_DB_URL;
+  const [selectedRow, setSelectedRow] = useState(null); 
+  const [isModalOpen, setIsModalOpen] = useState(false); 
+  const [dataa, setData] = useState({
+    followup_date: new Date(), // Initialize with the current date
+  });
+ 
+  const getdatetimeformate = (datetime) => {
+    if (datetime) {
+      const dateObject = new Date(datetime);
+      const formattedDate = `${padZero(dateObject.getDate())}-${padZero(
+        dateObject.getMonth() + 1
+      )}-${dateObject.getFullYear()} ${padZero(
+        dateObject.getHours()
+      )}:${padZero(dateObject.getMinutes())}`;
+      return formattedDate;
+    } else {
+      return " ";
+    }
+  };
+  function padZero(num) {
+    return num < 10 ? `0${num}` : num;
+  }
+  const handleQuickEdit = (row) => {
+    setSelectedRow(row); // Set the row data
+    setIsModalOpen(true); // Open the modal
+  };
+  
+  // Function to handle modal close
+  const handleCloseModal = () => {
+    setIsModalOpen(false); // Close the modal
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+  
+    // Function to convert local time to UTC by removing the time zone offset
+    // const followupDate = dataa.followup_date;
+    const followupDate = selectedRow?.followup_date;
+    // Check if followupDate is defined and not null
+    if (!followupDate) {
+      toast.warn("Followup date is required");
+      return;
+    }
+  
+    // Convert followupDate to ISO string without timezone adjustment
+    const adjustedFollowupDate = new Date(followupDate).toISOString().slice(0, 16);
+  
+  
+    // Collect form data
+    const updatedLeadData = {
+      lead_id: selectedRow._id,
+      commented_by: selectedRow?.agent_details[0]?._id || '',
+      followup_status_id: selectedRow.status_details[0]?._id || '',
+      
+      // Convert followup_date to UTC before submitting
+      followup_date: adjustedFollowupDate ,
+      
+      followup_won_amount: selectedRow.followup_won_amount || 0,
+      followup_lost_reason_id: selectedRow.followup_lost_reason_id || '',
+      add_to_calender: selectedRow.add_to_calender || false,
+      followup_desc: selectedRow.description || '',
+    };
+  
+    console.log("Submitting data:", updatedLeadData);
+  
+    try {
+      const response = await dispatch(addfollowup(updatedLeadData));
+      if (response.payload.success) {
+        toast.success(response.payload?.message);
+        // Simulate page refresh effect
+        // handleCloseModal(); 
+        window.location.reload();
+        
+      } else {
+        toast.warn(response.payload?.message);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error submitting followup:", error);
+      toast.error("An error occurred while submitting followup");
+    }
+  };
+  
+
+ 
+  
+  const parseDate = (dateString) => {
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  };
+  
+
+  const quickEditModal = (
+    <div
+      className={`modal fade ${isModalOpen ? 'show' : ''}`}
+      style={{ display: isModalOpen ? 'block' : 'none' }}
+      aria-labelledby="quickEditModalLabel"
+      aria-hidden={!isModalOpen}
+    >
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title" id="quickEditModalLabel">Quick Edit</h5>
+            <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+          </div>
+          <div className="modal-body">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label htmlFor="lastComment" className="form-label">Last Comment</label>
+                <textarea
+                  id="lastComment"
+                  className="form-control"
+                  value={selectedRow?.description || ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, description: e.target.value })}
+                />
+              </div>
+             
+              <div className="mb-3">
+                <label htmlFor="followupDateTime" className="form-label">Follow-up Date and Time</label>
+                {/* <input
+                  type="datetime-local"
+                  id="followupDateTime"
+                  className="form-control"
+                  value={selectedRow?.followup_date ? formatDateToLocal(selectedRow.followup_date) : ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, followup_date: e.target.value })}
+                /> */}
+                 <DatePicker
+                      // selected={dataa.followup_date}
+                      // onChange={(date) => setData({ ...selectedRow, followup_date: date })}
+                      selected={selectedRow?.followup_date ? new Date(selectedRow.followup_date) : null}
+                      onChange={(date) => setSelectedRow({ ...selectedRow, followup_date: date })}
+                      showTimeSelect
+                      timeFormat="hh:mm aa"
+                      timeIntervals={5}
+                      timeCaption="Time"
+                      dateFormat="dd/MM/yyyy h:mm aa" // Custom format: day/month/year and 12-hour time
+                      className="form-control"
+                      placeholderText="Followup date"
+                      name="followup_date"
+                      id="followup_date"
+                    />
+              </div>
+  
+              <div className="mb-3">
+                <label htmlFor="status" className="form-label">Change Status</label>
+                <select
+                  id="status"
+                  className="form-control"
+                  value={selectedRow?.status_details[0]?._id || ""}
+                  onChange={(e) => setSelectedRow({ ...selectedRow, status_details: [{ _id: e.target.value }] })}
+                >
+                  <option value="">Select Status</option>
+                  {Statusdata.leadstatus?.map((status) => (
+                    <option key={status._id} value={status._id}>
+                      {status.status_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+  
+              <div className="modal-footer">
+                <button type="submit" className="btn btn-primary">Submit</button>
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Close</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   useEffect(() => {
     const fetchData = async () => {
       dispatch(getAllAgent());
@@ -38,16 +222,17 @@ export const AllNewLead = ({ sendDataToParent, dataFromParent }) => {
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
       });
-  const leads = responce?.data?.lead || [];
+      const leads = responce?.data?.lead || [];
 
-// Filter out leads where type is 'excel'
-const filteredLeads = leads.filter(lead => lead.type !== 'excel');
+      // Filter out leads where type is 'excel'
+      const filteredLeads = leads.filter((lead) => lead.type !== "excel");
 
-// Set the filtered leads
-setleads(filteredLeads);
-setfilterleads(filteredLeads);
+      // Set the filtered leads
+      setleads(filteredLeads);
+      setfilterleads(filteredLeads);
 
       return responce?.data?.message;
     } catch (error) {
@@ -62,9 +247,19 @@ setfilterleads(filteredLeads);
 
   const getAllLead2 = async (assign_to_agent) => {
     try {
-      const responce = await axios.post(`${apiUrl}/getAllNewLeadBYAgentId`, {
-        assign_to_agent,
-      });
+      const responce = await axios.post(
+        `${apiUrl}/getAllNewLeadBYAgentId`,
+        {
+          assign_to_agent,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "mongodb-url": DBuUrl,
+            Authorization: "Bearer " + localStorage.getItem("token"),
+          },
+        }
+      );
       if (responce?.data?.success === true) {
         setstatus(responce?.data?.success);
         setleads(responce?.data?.lead);
@@ -227,6 +422,30 @@ setfilterleads(filteredLeads);
     },
   ];
 
+  const updateDisposition = async (row, e) => {
+    e.preventDefault();
+    // console.log("disposition", row, e.target.value);
+    const updatedLeadData = {
+      ...row,
+      disposition: e.target.value,
+    };
+
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + localStorage.getItem("token"),
+    };
+    try {
+      const responce = await axios.put(
+        `${apiUrl}/UpdateLeadByLeadId/${row?._id}`,
+        updatedLeadData,
+        { headers }
+      );
+      toast.success(responce?.data?.message);
+    } catch (error) {
+      toast.warn(error?.response?.data?.message);
+    }
+  };
+
   const getStatusBadgeClass = (statusName) => {
     switch (statusName) {
       case "Call Back & Hot Lead": {
@@ -267,6 +486,46 @@ setfilterleads(filteredLeads);
       sortable: true,
       cell: (row) => <div style={{ display: "none" }}>{row.description}</div>,
     },
+    // {
+    //   name: "Disposition & Remaks",
+    //   cell: (row) => (
+    //     <div>
+    //       <select
+    //         name="disposition"
+    //         onChange={(e) => updateDisposition(row, e)}
+    //         value={row?.disposition}
+    //       >
+    //         <option>Select</option>
+    //         {disposition.map((item, index) => {
+    //           return <option value={item}>{item}</option>;
+    //         })}
+    //       </select>
+    //     </div>
+    //   ),
+
+    //   sortable: true,
+    // },
+    {
+      name: "Quick Edit",
+      cell: (row) => <button onClick={() => handleQuickEdit(row)}>Quick Edit</button>,
+    },
+
+     
+    {
+      // name: "Followup date",
+      name: <div style={{ display: "none" }}>Followup date</div>,
+      selector: (row) =>
+        row?.followup_date
+          ? (<div style={{display:"none"}} >{getdatetimeformate(row?.followup_date)}</div>) 
+          
+          //  row?.followup_date && format(new Date(datafomate(row?.followup_date)), 'dd/MM/yy hh:mm:ss')
+            
+          : (
+            ""
+          ),
+      sortable: true,
+    },
+
     {
       name: "Action",
       cell: (row) => (
@@ -311,6 +570,49 @@ setfilterleads(filteredLeads);
       selector: (row) => row?.description,
       sortable: true,
       cell: (row) => <div style={{ display: "none" }}>{row.description}</div>,
+    },
+    // {
+    //   name: "Change Status",
+    //   cell: (row) => (
+    //     <div style={{ display: 'flex', alignItems: 'center' }}>
+    //       <select
+    //         onChange={(e) => handleStatusChange(e, row)}
+    //         value={row?.status_details[0]?._id || ""}
+    //         style={{ marginRight: '10px' }}
+    //       >
+    //         <option value="">Select Status</option>
+    //         {Statusdata.leadstatus?.map((status) => (
+    //           <option
+    //             key={status._id}
+    //             value={status._id}
+    //           >
+    //             {status.status_name}
+    //           </option>
+    //         ))}
+    //       </select>
+        
+    //     </div>
+    //   ),
+    // },
+    
+
+    {
+      name: "Quick Edit",
+      cell: (row) => <button onClick={() => handleQuickEdit(row)}>Quick Edit</button>,
+    },
+    {
+      // name: "Followup date",
+      name: <div style={{ display: "none" }}>Followup date</div>,
+      selector: (row) =>
+        row?.followup_date
+          ? (<div style={{display:"none"}} >{getdatetimeformate(row?.followup_date)}</div>) 
+          
+          //  row?.followup_date && format(new Date(datafomate(row?.followup_date)), 'dd/MM/yy hh:mm:ss')
+            
+          : (
+            ""
+          ),
+      sortable: true,
     },
     {
       name: "Action",
@@ -417,6 +719,7 @@ setfilterleads(filteredLeads);
         headers: {
           "Content-Type": "application/json",
           "mongodb-url": DBuUrl,
+          Authorization: "Bearer " + localStorage.getItem("token"),
         },
         body: JSON.stringify(aaaaa),
       })
@@ -459,6 +762,7 @@ setfilterleads(filteredLeads);
       headers: {
         "Content-Type": "application/json",
         "mongodb-url": DBuUrl,
+        Authorization: "Bearer " + localStorage.getItem("token"),
       },
       body: JSON.stringify(updatedata),
     })
@@ -545,7 +849,9 @@ setfilterleads(filteredLeads);
                       <option>Status</option>
                       {Statusdata?.leadstatus?.map((status, key) => {
                         return (
-                          <option value={status._id}>{status.status_name}</option>
+                          <option value={status._id}>
+                            {status.status_name}
+                          </option>
                         );
                       })}
                     </select>
@@ -564,7 +870,9 @@ setfilterleads(filteredLeads);
                       <option value="Unassigne">Unassigned Agent</option>
                       {agent?.agent?.map((agents, key) => {
                         return (
-                          <option value={agents._id}>{agents.agent_name}</option>
+                          <option value={agents._id}>
+                            {agents.agent_name}
+                          </option>
                         );
                       })}
                     </select>
@@ -577,7 +885,10 @@ setfilterleads(filteredLeads);
                       placeholder="Date To"
                       className="form-control"
                       onChange={(e) =>
-                        setAdvanceSerch({ ...adSerch, startDate: e.target.value })
+                        setAdvanceSerch({
+                          ...adSerch,
+                          startDate: e.target.value,
+                        })
                       }
                       name="startDate"
                     />
@@ -599,20 +910,14 @@ setfilterleads(filteredLeads);
 
                 <div className="col-md-3">
                   <div className="form-group">
-                    <button
-                      type="submit"
-                      className="btn-advf-sub"
-                    >
+                    <button type="submit" className="btn-advf-sub">
                       Submit
                     </button>
                   </div>
                 </div>
                 <div className="col-md-3">
                   <div className="form-group">
-                    <button
-                      onClick={Refresh}
-                      className="btn-advf-refresh"
-                    >
+                    <button onClick={Refresh} className="btn-advf-refresh">
                       Refresh
                     </button>
                   </div>
@@ -624,25 +929,16 @@ setfilterleads(filteredLeads);
       </div>
       <div className="row">
         <div className="col-md-12 advS">
-        <div className="export-wrap">
+          <div className="export-wrap">
             {isAdmin1 ? (
               <>
-                <button
-                  className="btn-ecport-pdf"
-                  onClick={exportToPDF}
-                >
+                <button className="btn-ecport-pdf" onClick={exportToPDF}>
                   Export PDF
                 </button>
-                <button
-                  className="btn-ecport-xls"
-                  onClick={exportToExcel}
-                >
+                <button className="btn-ecport-xls" onClick={exportToExcel}>
                   Export Excel
                 </button>
-                <button
-                  className="btn-ecport-del"
-                  onClick={DeleteSelected}
-                >
+                <button className="btn-ecport-del" onClick={DeleteSelected}>
                   Delete
                 </button>{" "}
               </>
@@ -652,7 +948,7 @@ setfilterleads(filteredLeads);
           </div>
         </div>
       </div>
-
+      {quickEditModal}
       {status === false ? (
         <table
           id="example"
@@ -679,16 +975,10 @@ setfilterleads(filteredLeads);
         <>
           {isAdmin1 ? (
             <>
-              <button
-                className="btn-sel-all"
-                onClick={handleCheckAll1}
-              >
+              <button className="btn-sel-all" onClick={handleCheckAll1}>
                 Select All
               </button>
-              <button
-                className="btn-sel-one"
-                onClick={handleCheckAll}
-              >
+              <button className="btn-sel-one" onClick={handleCheckAll}>
                 Select Per Page
               </button>
               <span class="btn btn-sm shadow_btn">Rows per page:</span>
@@ -707,16 +997,10 @@ setfilterleads(filteredLeads);
           ) : (
             <>
               {" "}
-              <button
-                className="btn-sel-all"
-                onClick={handleCheckAll1}
-              >
+              <button className="btn-sel-all" onClick={handleCheckAll1}>
                 Select All
               </button>
-              <button
-                className="btn-sel-one"
-                onClick={handleCheckAll}
-              >
+              <button className="btn-sel-one" onClick={handleCheckAll}>
                 Select Per Page
               </button>
               <span class="btn btn-sm shadow_btn">Rows per page:</span>
